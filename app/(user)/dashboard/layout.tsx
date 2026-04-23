@@ -1,22 +1,17 @@
 import type { ReactNode } from "react";
-import { DashboardShell } from "@/components/app/dashboard-shell";
+import { requireUser } from "@/lib/auth";
+import { UserDashboardShell } from "@/components/user/user-dashboard-shell";
 
-const links = [
-  { href: "/dashboard", label: "Overview" },
-  { href: "/dashboard/profile", label: "Profil" },
-  { href: "/dashboard/orders", label: "Pesanan" },
-  { href: "/dashboard/orders/new", label: "Buat Pesanan" },
-];
+export default async function UserDashboardLayout({ children }: { children: ReactNode }) {
+  const user = await requireUser();
 
-export default function UserDashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <DashboardShell
+    <UserDashboardShell
       title="User Dashboard"
       description="Area pelanggan untuk mengelola profil, pesanan, pembayaran, dan link meeting."
-      badge="User Panel"
-      links={links}
+      userLabel={user.email ?? "User"}
     >
       {children}
-    </DashboardShell>
+    </UserDashboardShell>
   );
 }

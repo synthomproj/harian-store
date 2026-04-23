@@ -4,7 +4,7 @@ import { SiteHeader } from "@/components/app/site-header";
 
 export default function PublicLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-white text-slate-950">
+    <div className="min-h-screen bg-[#fff7d6] text-slate-950">
       <SiteHeader />
       {children}
       <SiteFooter />

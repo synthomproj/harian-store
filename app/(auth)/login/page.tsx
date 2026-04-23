@@ -1,58 +1,63 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { LoginForm } from "@/components/auth/login-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
-export default function LoginPage() {
+type LoginPageProps = {
+  searchParams: Promise<{
+    registered?: string;
+  }>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const { registered } = await searchParams;
+  const message =
+    registered === "1"
+      ? "Akun berhasil dibuat. Silakan cek email Anda jika diminta verifikasi, lalu login kembali."
+      : undefined;
+
   return (
     <main className="flex min-h-screen items-center justify-center px-6 py-12">
-      <Card className="w-full max-w-md border-white/10 bg-slate-950/85 text-white shadow-2xl shadow-cyan-950/10 backdrop-blur">
-        <CardHeader className="space-y-2 text-center">
-          <CardTitle className="text-3xl text-white">Login</CardTitle>
-          <CardDescription className="text-white/75">
-            Masuk untuk melihat pesanan dan link meeting Anda.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-white">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="nama@email.com"
-                className="h-11 border-white/10 bg-white/5 text-white placeholder:text-white/35 focus-visible:ring-cyan-400 focus-visible:ring-offset-slate-950"
-              />
-            </div>
+      <div className="grid w-full max-w-5xl gap-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-stretch">
+        <section className="hidden rounded-[2rem] border-4 border-black bg-[#ffe066] p-8 shadow-[10px_10px_0_0_#000] lg:flex lg:flex-col lg:justify-between">
+          <div className="space-y-4">
+            <p className="inline-flex w-fit rounded-full border-2 border-black bg-[#ff6b6b] px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-black shadow-[2px_2px_0_0_#000]">
+              Login Area
+            </p>
+            <h1 className="text-4xl font-black leading-tight text-black">
+              Cek order dan akses link meeting tanpa ribet.
+            </h1>
+            <p className="max-w-md text-base leading-7 text-black/80">
+              Semua pesanan, pembayaran, dan link meeting Anda tetap tersusun rapi dalam satu dashboard.
+            </p>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-white">
-                Password
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Masukkan password"
-                className="h-11 border-white/10 bg-white/5 text-white placeholder:text-white/35 focus-visible:ring-cyan-400 focus-visible:ring-offset-slate-950"
-              />
-            </div>
+          <div className="rounded-[1.5rem] border-4 border-black bg-white p-5 shadow-[8px_8px_0_0_#000]">
+            <p className="text-sm font-black uppercase tracking-[0.18em] text-black/60">Harian Store</p>
+            <p className="mt-3 text-sm leading-6 text-black/75">
+              Solusi simpel untuk personal use, kelas online, komunitas, dan UMKM yang butuh meeting Zoom siap pakai.
+            </p>
+          </div>
+        </section>
 
-            <Button type="submit" className="w-full bg-cyan-400 text-slate-950 hover:bg-cyan-300">
-              Login
-            </Button>
-          </form>
+        <Card className="w-full max-w-md justify-self-center bg-[#fffbef] lg:max-w-none">
+          <CardHeader className="space-y-3 text-center">
+            <CardTitle className="text-3xl font-black text-black">Login</CardTitle>
+            <CardDescription className="text-black/75">
+              Masuk untuk melihat pesanan dan link meeting Anda.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <LoginForm message={message} />
 
-          <p className="mt-6 text-center text-sm text-white/70">
-            Belum punya akun?{" "}
-            <Link href="/register" className="font-medium text-cyan-300 hover:text-cyan-200">
-              Daftar sekarang
-            </Link>
-          </p>
-        </CardContent>
-      </Card>
+            <p className="mt-6 text-center text-sm text-black/70">
+              Belum punya akun?{" "}
+              <Link href="/register" className="font-black text-black underline decoration-2 underline-offset-4 hover:text-black/70">
+                Daftar sekarang
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     </main>
   );
 }

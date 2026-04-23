@@ -15,30 +15,30 @@ const footerLinks = {
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-white/10 bg-slate-950 text-slate-300">
+    <footer className="border-t-4 border-black bg-[#00d1ff] text-black">
       <div className="mx-auto grid w-full max-w-6xl gap-10 px-6 py-14 lg:grid-cols-[1.2fr_0.8fr_0.8fr]">
         <div className="space-y-4">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-300">
+            <p className="text-sm font-black uppercase tracking-[0.24em] text-black">
               Harian Store
             </p>
-            <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white">
+            <h2 className="mt-3 text-2xl font-black tracking-tight text-black">
               Pemesanan meeting Zoom yang rapi dari order sampai link siap dibagikan.
             </h2>
           </div>
-          <p className="max-w-xl text-sm leading-6 text-slate-400">
+          <p className="max-w-xl text-sm leading-6 text-black/75">
             Layanan meeting Zoom yang dibuat simpel untuk kebutuhan personal, kelas online,
             komunitas, dan UMKM yang ingin serba praktis.
           </p>
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">
+          <h3 className="text-sm font-black uppercase tracking-[0.22em] text-black/70">
             Produk
           </h3>
           <div className="mt-4 space-y-3 text-sm">
             {footerLinks.produk.map((item) => (
-              <Link key={item.href} href={item.href} className="block transition-colors hover:text-white">
+              <Link key={item.href} href={item.href} className="block font-semibold transition-colors hover:text-black/65">
                 {item.label}
               </Link>
             ))}
@@ -46,12 +46,12 @@ export function SiteFooter() {
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">
+          <h3 className="text-sm font-black uppercase tracking-[0.22em] text-black/70">
             Navigasi
           </h3>
           <div className="mt-4 space-y-3 text-sm">
             {footerLinks.alur.map((item) => (
-              <Link key={item.href} href={item.href} className="block transition-colors hover:text-white">
+              <Link key={item.href} href={item.href} className="block font-semibold transition-colors hover:text-black/65">
                 {item.label}
               </Link>
             ))}
