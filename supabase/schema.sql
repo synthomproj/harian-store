@@ -33,6 +33,18 @@ begin
 end;
 $$;
 
+create table if not exists public.profiles (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null unique references auth.users (id) on delete cascade,
+  email text not null,
+  full_name text not null,
+  whatsapp text,
+  company text,
+  role public.app_role not null default 'user',
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
 create or replace function public.is_admin()
 returns boolean
 language sql
@@ -45,18 +57,6 @@ as $$
       and role = 'admin'
   );
 $$;
-
-create table if not exists public.profiles (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null unique references auth.users (id) on delete cascade,
-  email text not null,
-  full_name text not null,
-  whatsapp text,
-  company text,
-  role public.app_role not null default 'user',
-  created_at timestamptz not null default timezone('utc', now()),
-  updated_at timestamptz not null default timezone('utc', now())
-);
 
 create table if not exists public.products (
   id uuid primary key default gen_random_uuid(),

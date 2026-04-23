@@ -1,17 +1,26 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import { NbButton } from "@/components/neo/nb-button";
+import { NewOrderPanel } from "@/components/user/new-order-panel";
+import { getActiveProducts } from "@/lib/orders";
 
-export default function NewOrderPage() {
+const timezones = ["Asia/Jakarta (WIB)", "Asia/Makassar (WITA)", "Asia/Jayapura (WIT)"];
+
+export default async function NewOrderPage() {
+  const products = await getActiveProducts();
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Buat pesanan baru</CardTitle>
-        <CardDescription>
-          Route ini dipersiapkan untuk form pilih paket, agenda, tanggal, jam, dan durasi meeting.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="text-sm text-slate-600">
-        Langkah berikutnya adalah menambahkan server action untuk membuat `orders` dan `meeting_requests`.
-      </CardContent>
-    </Card>
+    <div className="space-y-6">
+      <div className="">
+        <div className="space-y-6">
+          <NewOrderPanel products={products} timezones={timezones} />
+
+          <div>
+            <NbButton asChild variant="neutral">
+              <Link href="/dashboard">Kembali ke Overview</Link>
+            </NbButton>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
