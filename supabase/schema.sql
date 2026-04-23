@@ -10,7 +10,7 @@ create type public.order_status as enum (
   'cancelled',
   'rejected'
 );
-create type public.payment_status as enum ('unpaid', 'submitted', 'approved', 'rejected');
+create type public.payment_status as enum ('unpaid', 'pending', 'submitted', 'approved', 'rejected');
 create type public.provisioning_status as enum (
   'not_started',
   'queued',
@@ -80,6 +80,13 @@ create table if not exists public.orders (
   payment_status public.payment_status not null default 'unpaid',
   provisioning_status public.provisioning_status not null default 'not_started',
   total_amount bigint not null check (total_amount >= 0),
+  payment_provider text,
+  paydia_transaction_id text unique,
+  paydia_payment_url text,
+  paydia_status text,
+  paydia_expires_at timestamptz,
+  paydia_paid_at timestamptz,
+  paydia_payload jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
 );
@@ -147,6 +154,8 @@ create index if not exists idx_orders_product_id on public.orders (product_id);
 create index if not exists idx_orders_status on public.orders (status);
 create index if not exists idx_orders_payment_status on public.orders (payment_status);
 create index if not exists idx_orders_provisioning_status on public.orders (provisioning_status);
+create index if not exists idx_orders_payment_provider on public.orders (payment_provider);
+create index if not exists idx_orders_paydia_status on public.orders (paydia_status);
 create index if not exists idx_meeting_requests_meeting_date on public.meeting_requests (meeting_date);
 create index if not exists idx_manual_payments_order_id on public.manual_payments (order_id);
 create index if not exists idx_manual_payments_status on public.manual_payments (status);

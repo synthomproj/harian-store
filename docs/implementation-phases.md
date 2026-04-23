@@ -90,45 +90,55 @@ Order baru harus memiliki state:
 2. product aktif tersedia di database
 3. profile user tersedia
 
-## Phase 2: Payment Proof Upload
+## Phase 2: Paydia Payment Integration
 
 ### Goal
 
-Membangun alur upload bukti pembayaran dan menyimpan data payment submission ke database.
+Membangun alur pembayaran via Paydia dan menyimpan status transaksi pembayaran ke database.
 
 ### Scope
 
-1. implement route `/api/storage/payment-proof/signed-upload`
-2. generate signed upload untuk file bukti pembayaran
-3. upload file ke `Supabase Storage`
-4. simpan row ke `manual_payments`
-5. simpan `proof_file_path`
-6. update state order setelah bukti bayar dikirim
-7. tampilkan riwayat submit pembayaran di halaman payment bila diperlukan
+1. integrasi create payment transaction ke Paydia
+2. simpan identifier transaksi Paydia langsung pada `orders`
+3. redirect atau tampilkan payment link dari Paydia di halaman payment
+4. sinkronkan status pembayaran dari respons Paydia awal
+5. siapkan endpoint webhook atau callback untuk update status pembayaran
+6. update state order setelah pembayaran dibuat atau dikonfirmasi
+7. tampilkan status pembayaran Paydia di halaman payment bila diperlukan
 
 ### Main Tables
 
-1. `manual_payments`
-2. `orders`
+1. `orders`
+
+### Notes
+
+1. Phase 2 memakai opsi 1: data transaksi Paydia disimpan langsung di `orders`
+2. hindari tabel payment tambahan selama kebutuhan audit dan retry masih bisa ditangani dari kolom pada `orders`
 
 ### Expected State After Phase
 
-Setelah upload bukti bayar berhasil:
+Setelah payment transaction berhasil dibuat:
 
-1. `manual_payments.status = submitted`
-2. `orders.status = payment_review`
-3. `orders.payment_status = submitted`
+1. order memiliki reference transaksi dari Paydia
+2. `orders.payment_status` berubah ke status antara yang sesuai, misalnya `pending` jika enum diupdate, atau sementara tetap `unpaid` sampai webhook diterima
+3. status order siap menerima update lanjutan dari webhook atau callback Paydia
+
+Setelah pembayaran dikonfirmasi:
+
+1. `orders.payment_status = approved`
+2. `orders.status = paid` atau status antara yang disepakati sebelum provisioning
 
 ### Deliverables
 
-1. upload bukti bayar berjalan end-to-end
-2. payment page membaca data payment nyata
-3. status pembayaran user berubah setelah submit
+1. pembuatan transaksi Paydia berjalan end-to-end
+2. payment page membaca payment link atau status payment nyata
+3. status pembayaran user berubah mengikuti status transaksi Paydia yang disimpan di `orders`
 
 ### Dependencies
 
 1. Phase 1 selesai
-2. bucket storage sudah siap
+2. akun Paydia dan credential API sudah siap
+3. kebutuhan webhook atau callback Paydia sudah jelas
 
 ## Phase 3: User Order and Meeting Read Model
 

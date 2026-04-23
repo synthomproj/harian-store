@@ -9,6 +9,13 @@ export type OrderRecord = {
   payment_status: string;
   provisioning_status: string;
   total_amount: number;
+  payment_provider: string | null;
+  paydia_transaction_id: string | null;
+  paydia_payment_url: string | null;
+  paydia_status: string | null;
+  paydia_expires_at: string | null;
+  paydia_paid_at: string | null;
+  paydia_payload: Record<string, unknown>;
   created_at: string;
   product: {
     id: string;
@@ -67,6 +74,13 @@ export const getOrderByCode = cache(async (orderCode: string): Promise<OrderReco
         payment_status,
         provisioning_status,
         total_amount,
+        payment_provider,
+        paydia_transaction_id,
+        paydia_payment_url,
+        paydia_status,
+        paydia_expires_at,
+        paydia_paid_at,
+        paydia_payload,
         created_at,
         product:products (id, name, duration_minutes, participant_limit),
         meeting_request:meeting_requests (agenda, meeting_date, start_time, duration_minutes, timezone),
