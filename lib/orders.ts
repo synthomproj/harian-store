@@ -50,6 +50,98 @@ export type ProductRecord = {
   is_active: boolean;
 };
 
+export type OrderListItem = {
+  id: string;
+  order_code: string;
+  status: string;
+  payment_status: string;
+  provisioning_status: string;
+  total_amount: number;
+  created_at: string;
+  product: {
+    id: string;
+    name: string;
+    duration_minutes: number;
+    participant_limit: number | null;
+  } | null;
+  meeting_request: {
+    agenda: string;
+    meeting_date: string;
+    start_time: string;
+    duration_minutes: number;
+    timezone: string;
+  } | null;
+  zoom_meeting: {
+    join_url: string | null;
+    status: string;
+    generated_at: string | null;
+  } | null;
+};
+
+async function getCurrentUserId() {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return user?.id ?? null;
+}
+
+async function getOrdersForCurrentUser() {
+  const userId = await getCurrentUserId();
+
+  if (!userId) {
+    return [] as OrderListItem[];
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("orders")
+    .select(
+      `
+        id,
+        order_code,
+        status,
+        payment_status,
+        provisioning_status,
+        total_amount,
+        created_at,
+        product:products (id, name, duration_minutes, participant_limit),
+        meeting_request:meeting_requests (agenda, meeting_date, start_time, duration_minutes, timezone),
+        zoom_meeting:zoom_meetings (join_url, status, generated_at)
+      `,
+    )
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  return (data as OrderListItem[] | null) ?? [];
+}
+
+export const getTransactionHistory = cache(async (): Promise<OrderListItem[]> => {
+  return getOrdersForCurrentUser();
+});
+
+export const getActiveMeetings = cache(async (): Promise<OrderListItem[]> => {
+  const orders = await getOrdersForCurrentUser();
+  const today = new Date().toISOString().slice(0, 10);
+
+  return orders.filter((order) => {
+    if (!order.meeting_request) {
+      return false;
+    }
+
+    if (["cancelled", "rejected"].includes(order.status)) {
+      return false;
+    }
+
+    if (order.zoom_meeting && ["expired", "failed"].includes(order.zoom_meeting.status)) {
+      return false;
+    }
+
+    return order.meeting_request.meeting_date >= today || order.provisioning_status !== "success";
+  });
+});
+
 export const getActiveProducts = cache(async (): Promise<ProductRecord[]> => {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase

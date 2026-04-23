@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Home, LogOut, Menu, Package, ShoppingBag, User } from "lucide-react";
+import { CreditCard, Home, LogOut, Menu, Package, ShoppingBag, User } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { signOutAction } from "@/app/(auth)/sign-out-action";
 import { NbButton } from "@/components/neo/nb-button";
@@ -18,7 +18,8 @@ type UserDashboardShellProps = {
 const navItems = [
   { href: "/dashboard", label: "Overview", icon: Home },
   { href: "/dashboard/orders/new", label: "Beli Paket", icon: ShoppingBag },
-  { href: "/dashboard/orders", label: "Meeting", icon: Package },
+  { href: "/dashboard/meeting", label: "Meeting", icon: Package },
+  { href: "/dashboard/transaksi", label: "Transaksi", icon: CreditCard },
   { href: "/dashboard/profile", label: "Profil", icon: User },
 ];
 
@@ -29,8 +30,6 @@ export function UserDashboardShell({ children }: UserDashboardShellProps) {
     <>
       <NbCard className="bg-cyan-300 p-5">
         <p className="text-xs font-bold uppercase tracking-[0.22em] text-black/70">Harian Store</p>
-        <h1 className="mt-3 text-2xl font-black leading-none">Customer Panel</h1>
-        <p className="mt-3 text-sm leading-6 text-black/75">Menu utama untuk beli paket, cek meeting, dan kelola profil.</p>
       </NbCard>
 
       <NbCard className="flex-1 p-3">

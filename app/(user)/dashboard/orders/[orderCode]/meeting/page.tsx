@@ -55,7 +55,7 @@ export default async function OrderMeetingPage({ params }: OrderMeetingPageProps
               <Link href={`/dashboard/orders/${orderCode}`}>Kembali ke Status</Link>
             </NbButton>
             <NbButton asChild variant="neutral" className="w-full bg-[#ff6b6b]">
-              <Link href="/dashboard/orders">Lihat Semua Meeting</Link>
+              <Link href="/dashboard/meeting">Lihat Semua Meeting</Link>
             </NbButton>
           </div>
         </NbCard>

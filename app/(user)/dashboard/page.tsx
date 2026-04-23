@@ -43,7 +43,7 @@ export default function DashboardPage() {
                   <Link href="/dashboard/orders/new">Beli Paket</Link>
                 </NbButton>
                 <NbButton asChild variant="neutral" className="w-full">
-                  <Link href="/dashboard/orders">Lihat Pesanan</Link>
+                  <Link href="/dashboard/transaksi">Lihat Transaksi</Link>
                 </NbButton>
               </div>
             </div>
