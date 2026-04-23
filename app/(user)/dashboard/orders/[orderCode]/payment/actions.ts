@@ -1,31 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getPaydiaEnv } from "@/lib/env";
+import { generatePaydiaQris, inquirePaydiaQrisStatus, mapPaydiaSnapStatus } from "@/lib/paydia";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type CreatePaydiaPaymentState = {
   error?: string;
   success?: string;
 };
-
-function mapInitialPaymentStatus(status: string | null) {
-  if (!status) {
-    return "pending";
-  }
-
-  const normalizedStatus = status.toLowerCase();
-
-  if (["paid", "settled", "success", "approved"].includes(normalizedStatus)) {
-    return "approved";
-  }
-
-  if (["failed", "expired", "cancelled", "canceled", "rejected"].includes(normalizedStatus)) {
-    return "rejected";
-  }
-
-  return "pending";
-}
 
 export async function createPaydiaPaymentAction(
   _: CreatePaydiaPaymentState,
@@ -48,7 +30,7 @@ export async function createPaydiaPaymentAction(
 
   const { data: order, error: orderError } = await supabase
     .from("orders")
-    .select("id, order_code, user_id, total_amount, payment_status, paydia_transaction_id")
+    .select("id, order_code, user_id, total_amount, payment_status, paydia_reference_no")
     .eq("id", orderId)
     .eq("user_id", user.id)
     .single();
@@ -57,71 +39,40 @@ export async function createPaydiaPaymentAction(
     return { error: "Order tidak ditemukan atau tidak bisa diakses." };
   }
 
-  if (order.paydia_transaction_id) {
-    return { success: "Transaksi Paydia untuk order ini sudah pernah dibuat." };
+  if (order.paydia_reference_no) {
+    return { success: "QRIS Paydia untuk order ini sudah pernah dibuat." };
   }
 
-  let apiUrl: string;
-  let apiKey: string;
+  let generatedQr: Awaited<ReturnType<typeof generatePaydiaQris>>;
 
   try {
-    ({ apiUrl, apiKey } = getPaydiaEnv());
+    generatedQr = await generatePaydiaQris({
+      orderCode: order.order_code,
+      totalAmount: order.total_amount,
+    });
   } catch (error) {
     return {
-      error: error instanceof Error ? error.message : "Konfigurasi Paydia belum lengkap.",
+      error: error instanceof Error ? error.message : "Gagal membuat QRIS Paydia.",
     };
   }
 
-  const payload = {
-    orderCode: order.order_code,
-    amount: order.total_amount,
-  };
-
-  let response: Response;
-
-  try {
-    response = await fetch(`${apiUrl.replace(/\/$/, "")}/transactions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(payload),
-      cache: "no-store",
-    });
-  } catch {
-    return { error: "Gagal terhubung ke layanan Paydia." };
-  }
-
-  const responseBody = (await response.json().catch(() => null)) as Record<string, unknown> | null;
-
-  if (!response.ok || !responseBody) {
-    return { error: "Paydia gagal membuat transaksi baru." };
-  }
-
-  const transactionId = typeof responseBody.transaction_id === "string" ? responseBody.transaction_id : null;
-  const paymentUrl = typeof responseBody.payment_url === "string" ? responseBody.payment_url : null;
-  const paydiaStatus = typeof responseBody.status === "string" ? responseBody.status : null;
-  const expiresAt = typeof responseBody.expires_at === "string" ? responseBody.expires_at : null;
-
-  if (!transactionId) {
-    return { error: "Respons Paydia tidak memiliki transaction id." };
-  }
-
-  const nextPaymentStatus = mapInitialPaymentStatus(paydiaStatus);
-  const nextOrderStatus = nextPaymentStatus === "approved" ? "paid" : "pending_payment";
+  const responseBody = generatedQr.responseBody;
+  const snapStatus = mapPaydiaSnapStatus("01");
 
   const { error: updateError } = await supabase
     .from("orders")
     .update({
       payment_provider: "paydia",
-      paydia_transaction_id: transactionId,
-      paydia_payment_url: paymentUrl,
-      paydia_status: paydiaStatus,
-      paydia_expires_at: expiresAt,
+      paydia_transaction_id: responseBody.referenceNo ?? order.order_code,
+      paydia_partner_reference_no: responseBody.partnerReferenceNo ?? order.order_code,
+      paydia_reference_no: responseBody.referenceNo ?? null,
+      paydia_qr_content: responseBody.qrContent ?? null,
+      paydia_status: "01",
+      paydia_status_desc: "Initiated",
+      paydia_expires_at: generatedQr.validityPeriod,
       paydia_payload: responseBody,
-      payment_status: nextPaymentStatus,
-      status: nextOrderStatus,
+      payment_status: snapStatus.paymentStatus,
+      status: snapStatus.orderStatus,
     })
     .eq("id", order.id)
     .eq("user_id", user.id);
@@ -133,5 +84,79 @@ export async function createPaydiaPaymentAction(
   revalidatePath(`/dashboard/orders/${order.order_code}/payment`);
   revalidatePath(`/dashboard/orders/${order.order_code}`);
 
-  return { success: "Transaksi Paydia berhasil dibuat." };
+  return { success: "QRIS Paydia berhasil dibuat." };
+}
+
+export async function refreshPaydiaPaymentStatusAction(
+  _: CreatePaydiaPaymentState,
+  formData: FormData,
+): Promise<CreatePaydiaPaymentState> {
+  const orderId = formData.get("order_id");
+
+  if (typeof orderId !== "string" || !orderId) {
+    return { error: "Order tidak valid." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Session Anda tidak ditemukan. Silakan login kembali." };
+  }
+
+  const { data: order, error: orderError } = await supabase
+    .from("orders")
+    .select("id, order_code, user_id, paydia_partner_reference_no, paydia_reference_no, paydia_payload")
+    .eq("id", orderId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (orderError || !order) {
+    return { error: "Order tidak ditemukan atau tidak bisa diakses." };
+  }
+
+  let inquiryResponse: Awaited<ReturnType<typeof inquirePaydiaQrisStatus>>;
+
+  try {
+    inquiryResponse = await inquirePaydiaQrisStatus({
+      partnerReferenceNo: order.paydia_partner_reference_no,
+      referenceNo: order.paydia_reference_no,
+    });
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Gagal mengambil status QRIS Paydia.",
+    };
+  }
+
+  const mappedStatus = mapPaydiaSnapStatus(inquiryResponse.latestTransactionStatus ?? null);
+  const paidTime = typeof inquiryResponse.additionalInfo?.paidTime === "string" ? inquiryResponse.additionalInfo.paidTime : null;
+
+  const { error: updateError } = await supabase
+    .from("orders")
+    .update({
+      paydia_partner_reference_no: inquiryResponse.originalPartnerReferenceNo ?? order.paydia_partner_reference_no,
+      paydia_reference_no: inquiryResponse.originalReferenceNo ?? order.paydia_reference_no,
+      paydia_status: inquiryResponse.latestTransactionStatus ?? null,
+      paydia_status_desc: inquiryResponse.transactionStatusDesc ?? null,
+      paydia_paid_at: paidTime,
+      paydia_payload: {
+        previous: order.paydia_payload,
+        inquiry: inquiryResponse,
+      },
+      payment_status: mappedStatus.paymentStatus,
+      status: mappedStatus.orderStatus,
+    })
+    .eq("id", order.id)
+    .eq("user_id", user.id);
+
+  if (updateError) {
+    return { error: updateError.message };
+  }
+
+  revalidatePath(`/dashboard/orders/${order.order_code}/payment`);
+  revalidatePath(`/dashboard/orders/${order.order_code}`);
+
+  return { success: "Status pembayaran berhasil diperbarui." };
 }

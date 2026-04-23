@@ -1,18 +1,18 @@
 "use client";
 
 import { useActionState } from "react";
-import { createPaydiaPaymentAction, type CreatePaydiaPaymentState } from "@/app/(user)/dashboard/orders/[orderCode]/payment/actions";
+import { refreshPaydiaPaymentStatusAction, type CreatePaydiaPaymentState } from "@/app/(user)/dashboard/orders/[orderCode]/payment/actions";
 import { NbButton } from "@/components/neo/nb-button";
 
-type PaydiaPaymentFormProps = {
+type PaydiaStatusRefreshFormProps = {
   orderId: string;
-  hasQrContent: boolean;
+  disabled?: boolean;
 };
 
 const initialState: CreatePaydiaPaymentState = {};
 
-export function PaydiaPaymentForm({ orderId, hasQrContent }: PaydiaPaymentFormProps) {
-  const [state, formAction, pending] = useActionState(createPaydiaPaymentAction, initialState);
+export function PaydiaStatusRefreshForm({ orderId, disabled = false }: PaydiaStatusRefreshFormProps) {
+  const [state, formAction, pending] = useActionState(refreshPaydiaPaymentStatusAction, initialState);
 
   return (
     <form action={formAction} className="space-y-3">
@@ -30,8 +30,8 @@ export function PaydiaPaymentForm({ orderId, hasQrContent }: PaydiaPaymentFormPr
         </div>
       ) : null}
 
-      <NbButton type="submit" className="bg-[#00d1ff]" disabled={pending || hasQrContent}>
-        {pending ? "Membuat QRIS..." : hasQrContent ? "QRIS Sudah Ada" : "Buat QRIS Paydia"}
+      <NbButton type="submit" variant="neutral" className="bg-white" disabled={pending || disabled}>
+        {pending ? "Mengecek Status..." : "Refresh Status Paydia"}
       </NbButton>
     </form>
   );

@@ -15,8 +15,12 @@ $$;
 alter table public.orders
   add column if not exists payment_provider text,
   add column if not exists paydia_transaction_id text,
+  add column if not exists paydia_partner_reference_no text,
+  add column if not exists paydia_reference_no text,
   add column if not exists paydia_payment_url text,
+  add column if not exists paydia_qr_content text,
   add column if not exists paydia_status text,
+  add column if not exists paydia_status_desc text,
   add column if not exists paydia_expires_at timestamptz,
   add column if not exists paydia_paid_at timestamptz,
   add column if not exists paydia_payload jsonb not null default '{}'::jsonb;
@@ -27,6 +31,12 @@ create unique index if not exists idx_orders_paydia_transaction_id
 
 create index if not exists idx_orders_payment_provider
   on public.orders (payment_provider);
+
+create index if not exists idx_orders_paydia_partner_reference_no
+  on public.orders (paydia_partner_reference_no);
+
+create index if not exists idx_orders_paydia_reference_no
+  on public.orders (paydia_reference_no);
 
 create index if not exists idx_orders_paydia_status
   on public.orders (paydia_status);

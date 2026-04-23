@@ -82,8 +82,12 @@ create table if not exists public.orders (
   total_amount bigint not null check (total_amount >= 0),
   payment_provider text,
   paydia_transaction_id text unique,
+  paydia_partner_reference_no text,
+  paydia_reference_no text,
   paydia_payment_url text,
+  paydia_qr_content text,
   paydia_status text,
+  paydia_status_desc text,
   paydia_expires_at timestamptz,
   paydia_paid_at timestamptz,
   paydia_payload jsonb not null default '{}'::jsonb,
@@ -155,6 +159,8 @@ create index if not exists idx_orders_status on public.orders (status);
 create index if not exists idx_orders_payment_status on public.orders (payment_status);
 create index if not exists idx_orders_provisioning_status on public.orders (provisioning_status);
 create index if not exists idx_orders_payment_provider on public.orders (payment_provider);
+create index if not exists idx_orders_paydia_partner_reference_no on public.orders (paydia_partner_reference_no);
+create index if not exists idx_orders_paydia_reference_no on public.orders (paydia_reference_no);
 create index if not exists idx_orders_paydia_status on public.orders (paydia_status);
 create index if not exists idx_meeting_requests_meeting_date on public.meeting_requests (meeting_date);
 create index if not exists idx_manual_payments_order_id on public.manual_payments (order_id);
