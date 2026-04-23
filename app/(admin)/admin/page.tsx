@@ -24,7 +24,7 @@ export default function AdminPage() {
             <CardTitle>Provisioning Gagal</CardTitle>
             <CardDescription>Failure yang butuh retry atau investigasi.</CardDescription>
           </CardHeader>
-          <CardContent className="text-sm text-slate-600">Akan membaca `webhook_logs` dan `zoom_meetings`.</CardContent>
+          <CardContent className="text-sm text-slate-600">Akan membaca `webhook_logs` dan `meeting`.</CardContent>
         </Card>
         <Card>
           <CardHeader>

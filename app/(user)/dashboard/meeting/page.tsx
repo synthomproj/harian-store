@@ -2,35 +2,34 @@ import Link from "next/link";
 import { Video } from "lucide-react";
 import { NbButton } from "@/components/neo/nb-button";
 import { NbCard, NbCardContent } from "@/components/neo/nb-card";
-import { getActiveMeetings, type OrderListItem } from "@/lib/orders";
+import { getActiveMeetings, type MeetingRecord } from "@/lib/orders";
 
-function formatMeetingDate(order: OrderListItem) {
-  if (!order.meeting_request) {
+function formatMeetingDate(meeting: MeetingRecord) {
+  const date = meeting.meeting_request?.meeting_date ?? (meeting.start_time ? meeting.start_time.slice(0, 10) : null);
+  const time = meeting.meeting_request?.start_time ?? (meeting.start_time ? new Date(meeting.start_time).toISOString().slice(11, 16) : null);
+  const duration = meeting.meeting_request?.duration_minutes ?? meeting.duration;
+
+  if (!date || !time || !duration) {
     return "Jadwal belum ditentukan";
   }
 
   const dateLabel = new Intl.DateTimeFormat("id-ID", {
     dateStyle: "medium",
-  }).format(new Date(order.meeting_request.meeting_date));
+  }).format(new Date(date));
 
-  const timeLabel = order.meeting_request.start_time.slice(0, 5);
-  return `${dateLabel} • ${timeLabel} WIB • ${order.meeting_request.duration_minutes} menit`;
+  return `${dateLabel} • ${time.slice(0, 5)} WIB • ${duration} menit`;
 }
 
-function getTopic(order: OrderListItem) {
-  return order.meeting_request?.agenda ?? order.product?.name ?? "Order meeting";
+function getTopic(meeting: MeetingRecord) {
+  return meeting.topic ?? meeting.meeting_request?.agenda ?? meeting.order?.product?.name ?? "Meeting";
 }
 
-function getMeetingStatus(order: OrderListItem) {
-  if (order.zoom_meeting?.status) {
-    return order.zoom_meeting.status;
-  }
+function getPaymentStatus(meeting: MeetingRecord) {
+  return meeting.order?.payment_status ?? "unknown";
+}
 
-  if (order.provisioning_status === "success") {
-    return "generated";
-  }
-
-  return order.provisioning_status;
+function getProvisioningStatus(meeting: MeetingRecord) {
+  return meeting.order?.provisioning_status ?? "unknown";
 }
 
 export default async function MeetingPage() {
@@ -43,7 +42,7 @@ export default async function MeetingPage() {
           <div>
             <p className="text-xs font-black uppercase tracking-[0.22em] text-black/70">Meeting</p>
             <h2 className="mt-3 text-3xl font-black leading-tight text-black lg:text-4xl">Semua meeting Anda ada di sini.</h2>
-            <p className="mt-3 max-w-xl text-sm leading-7 text-black/80 lg:text-base">Menu ini fokus untuk meeting aktif dan meeting yang sedang diproses.</p>
+            <p className="mt-3 max-w-xl text-sm leading-7 text-black/80 lg:text-base">Menu ini sekarang membaca langsung dari tabel `meeting` untuk menampilkan sesi yang aktif.</p>
           </div>
 
           <div className="rounded-[1.5rem] border-2 border-black bg-white p-5 shadow-[6px_6px_0_0_#000]">
@@ -64,7 +63,7 @@ export default async function MeetingPage() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h3 className="text-2xl font-black text-black">Meeting Aktif</h3>
-            <p className="text-sm leading-6 text-black/70">Order yang masih berjalan, menunggu pembayaran, atau meeting yang belum selesai.</p>
+            <p className="text-sm leading-6 text-black/70">Data meeting aktif dibaca dari tabel `meeting` dan ditautkan ke order terkait.</p>
           </div>
         </div>
 
@@ -90,23 +89,23 @@ export default async function MeetingPage() {
                 <tbody>
                   {activeMeetings.map((meeting, index) => (
                     <tr key={meeting.id} className={index % 2 === 0 ? "bg-white" : "bg-[#fffbef]"}>
-                      <td className="border-b border-black px-4 py-4 align-top font-bold">{meeting.order_code}</td>
+                      <td className="border-b border-black px-4 py-4 align-top font-bold">{meeting.order?.order_code ?? "-"}</td>
                       <td className="border-b border-black px-4 py-4 align-top">
                         <div className="font-bold">{getTopic(meeting)}</div>
-                        <div className="mt-1 text-xs text-black/60">{meeting.product?.name ?? "Produk tidak ditemukan"}</div>
+                        <div className="mt-1 text-xs text-black/60">{meeting.order?.product?.name ?? "Produk tidak ditemukan"}</div>
                       </td>
                       <td className="border-b border-black px-4 py-4 align-top text-black/80">{formatMeetingDate(meeting)}</td>
-                      <td className="border-b border-black px-4 py-4 align-top font-bold">{meeting.payment_status}</td>
-                      <td className="border-b border-black px-4 py-4 align-top font-bold">{meeting.provisioning_status}</td>
+                      <td className="border-b border-black px-4 py-4 align-top font-bold">{getPaymentStatus(meeting)}</td>
+                      <td className="border-b border-black px-4 py-4 align-top font-bold">{getProvisioningStatus(meeting)}</td>
                       <td className="border-b border-black px-4 py-4 align-top">
                         <div className="inline-flex rounded-full border-2 border-black bg-white px-3 py-1 text-xs font-black text-black shadow-[2px_2px_0_0_#000]">
-                          {getMeetingStatus(meeting)}
+                          {meeting.status}
                         </div>
                       </td>
                       <td className="border-b border-black px-4 py-4 align-top">
                         <div className="flex min-w-[56px] gap-2">
-                          <NbButton asChild variant="neutral" className="h-10 w-10 bg-white p-0" aria-label={`Lihat detail meeting ${meeting.order_code}`} title="Detail Meeting">
-                            <Link href={`/dashboard/orders/${meeting.order_code}/meeting`}>
+                          <NbButton asChild variant="neutral" className="h-10 w-10 bg-white p-0" aria-label={`Lihat detail meeting ${meeting.id}`} title="Detail Meeting">
+                            <Link href={`/dashboard/meeting/${meeting.id}`}>
                               <Video className="size-4" />
                             </Link>
                           </NbButton>

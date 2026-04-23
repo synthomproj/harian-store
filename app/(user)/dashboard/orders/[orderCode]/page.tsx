@@ -59,7 +59,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
               <Link href={`/dashboard/orders/${orderCode}/payment`}>Kembali ke Pembayaran</Link>
             </NbButton>
             <NbButton asChild variant="neutral" className="w-full bg-[#00d1ff]">
-              <Link href={`/dashboard/orders/${orderCode}/meeting`}>Lihat Status Meeting</Link>
+              <Link href={order.meeting ? `/dashboard/meeting/${order.meeting.id}` : "/dashboard/meeting"}>Lihat Status Meeting</Link>
             </NbButton>
           </div>
         </NbCard>

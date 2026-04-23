@@ -1,6 +1,73 @@
-import { cache } from "react";
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+export type MeetingRecord = {
+  id: string;
+  meeting_id: string | null;
+  host_id: string | null;
+  host_email: string | null;
+  topic: string | null;
+  status: string;
+  start_time: string | null;
+  duration: number | null;
+  timezone: string;
+  start_url: string | null;
+  join_url: string | null;
+  password: string | null;
+  meeting_created_at: string | null;
+  created_at: string;
+  order_id: string;
+  user_id: string | null;
+  order: {
+    id: string;
+    order_code: string;
+    status: string;
+    payment_status: string;
+    provisioning_status: string;
+    total_amount: number;
+    created_at: string;
+    product: {
+      id: string;
+      name: string;
+      duration_minutes: number;
+      participant_limit: number | null;
+    } | null;
+  } | null;
+  meeting_request: {
+    id: string;
+    agenda: string;
+    meeting_date: string;
+    start_time: string;
+    duration_minutes: number;
+    timezone: string;
+    notes: string | null;
+  } | null;
+};
+
+type OrderMeetingMeta = {
+  id: string;
+  order_code: string;
+  status: string;
+  payment_status: string;
+  provisioning_status: string;
+  total_amount: number;
+  created_at: string;
+  product: {
+    id: string;
+    name: string;
+    duration_minutes: number;
+    participant_limit: number | null;
+  } | null;
+  meeting_request: {
+    id: string;
+    agenda: string;
+    meeting_date: string;
+    start_time: string;
+    duration_minutes: number;
+    timezone: string;
+    notes: string | null;
+  } | null;
+};
 
 export type OrderRecord = {
   id: string;
@@ -28,16 +95,15 @@ export type OrderRecord = {
     participant_limit: number | null;
   } | null;
   meeting_request: {
+    id: string;
     agenda: string;
     meeting_date: string;
     start_time: string;
     duration_minutes: number;
     timezone: string;
+    notes: string | null;
   } | null;
-  zoom_meeting: {
-    join_url: string | null;
-    status: string;
-  } | null;
+  meeting: MeetingRecord | null;
 };
 
 export type ProductRecord = {
@@ -50,7 +116,7 @@ export type ProductRecord = {
   is_active: boolean;
 };
 
-export type OrderListItem = {
+export type TransactionRecord = {
   id: string;
   order_code: string;
   status: string;
@@ -65,17 +131,15 @@ export type OrderListItem = {
     participant_limit: number | null;
   } | null;
   meeting_request: {
+    id: string;
     agenda: string;
     meeting_date: string;
     start_time: string;
     duration_minutes: number;
     timezone: string;
+    notes: string | null;
   } | null;
-  zoom_meeting: {
-    join_url: string | null;
-    status: string;
-    generated_at: string | null;
-  } | null;
+  meeting: MeetingRecord | null;
 };
 
 async function getCurrentUserId() {
@@ -87,11 +151,11 @@ async function getCurrentUserId() {
   return user?.id ?? null;
 }
 
-async function getOrdersForCurrentUser() {
+async function getTransactionsForCurrentUser() {
   const userId = await getCurrentUserId();
 
   if (!userId) {
-    return [] as OrderListItem[];
+    return [] as TransactionRecord[];
   }
 
   const supabase = await createSupabaseServerClient();
@@ -107,42 +171,253 @@ async function getOrdersForCurrentUser() {
         total_amount,
         created_at,
         product:products (id, name, duration_minutes, participant_limit),
-        meeting_request:meeting_requests (agenda, meeting_date, start_time, duration_minutes, timezone),
-        zoom_meeting:zoom_meetings (join_url, status, generated_at)
+        meeting_request:meeting_requests (id, agenda, meeting_date, start_time, duration_minutes, timezone, notes),
+        meeting:meeting (id, meeting_id, host_id, host_email, topic, status, start_time, duration, timezone, start_url, join_url, password, meeting_created_at, created_at, order_id, user_id)
       `,
     )
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
-  return (data as OrderListItem[] | null) ?? [];
+  return (data as TransactionRecord[] | null) ?? [];
 }
 
-export const getTransactionHistory = cache(async (): Promise<OrderListItem[]> => {
-  return getOrdersForCurrentUser();
-});
+async function getOrdersByIds(orderIds: string[]) {
+  if (orderIds.length === 0) {
+    return [] as OrderMeetingMeta[];
+  }
 
-export const getActiveMeetings = cache(async (): Promise<OrderListItem[]> => {
-  const orders = await getOrdersForCurrentUser();
-  const today = new Date().toISOString().slice(0, 10);
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("orders")
+    .select(
+      `
+        id,
+        order_code,
+        status,
+        payment_status,
+        provisioning_status,
+        total_amount,
+        created_at,
+        product:products (id, name, duration_minutes, participant_limit),
+        meeting_request:meeting_requests (id, agenda, meeting_date, start_time, duration_minutes, timezone, notes)
+      `,
+    )
+    .in("id", orderIds);
 
-  return orders.filter((order) => {
-    if (!order.meeting_request) {
+  return (data as OrderMeetingMeta[] | null) ?? [];
+}
+
+export async function getTransactionHistory(): Promise<TransactionRecord[]> {
+  return getTransactionsForCurrentUser();
+}
+
+export async function getActiveMeetings(): Promise<MeetingRecord[]> {
+  const userId = await getCurrentUserId();
+
+  if (!userId) {
+    return [];
+  }
+
+  const transactions = await getTransactionsForCurrentUser();
+  const ownedOrderIds = transactions.map((transaction) => transaction.id);
+
+  if (ownedOrderIds.length === 0) {
+    return [];
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("meeting")
+    .select(
+      `
+        id,
+        meeting_id,
+        host_id,
+        host_email,
+        topic,
+        status,
+        start_time,
+        duration,
+        timezone,
+        start_url,
+        join_url,
+        password,
+        meeting_created_at,
+        created_at,
+        order_id,
+        user_id
+      `,
+    )
+    .in("order_id", ownedOrderIds)
+    .order("created_at", { ascending: false });
+
+  const meetings = (data as MeetingRecord[] | null) ?? [];
+  const orders = await getOrdersByIds(meetings.map((meeting) => meeting.order_id));
+  const orderMap = new Map(orders.map((order) => [order.id, order]));
+
+  return meetings
+    .map((meeting) => {
+      const order = orderMap.get(meeting.order_id) ?? null;
+
+      return {
+        ...meeting,
+        order,
+        meeting_request: order?.meeting_request ?? null,
+      } satisfies MeetingRecord;
+    })
+    .filter((meeting) => {
+    if (!meeting.order) {
       return false;
     }
 
-    if (["cancelled", "rejected"].includes(order.status)) {
+    if (["cancelled", "rejected"].includes(meeting.order.status)) {
       return false;
     }
 
-    if (order.zoom_meeting && ["expired", "failed"].includes(order.zoom_meeting.status)) {
-      return false;
+      return !["ended", "cancelled"].includes(meeting.status);
+    });
+}
+
+async function hydrateMeetingRecord(meeting: MeetingRecord | null) {
+  if (!meeting) {
+    console.error("[meeting] hydrateMeetingRecord: meeting not found");
+    return null;
+  }
+
+  const [order] = await getOrdersByIds([meeting.order_id]);
+
+  if (!order) {
+    console.error("[meeting] hydrateMeetingRecord: linked order not found", { orderId: meeting.order_id, meetingId: meeting.id });
+    return null;
+  }
+
+  return {
+    ...meeting,
+    order: order ?? null,
+    meeting_request: order?.meeting_request ?? null,
+  } satisfies MeetingRecord;
+}
+
+export async function getMeetingById(meetingId: string): Promise<MeetingRecord | null> {
+  const userId = await getCurrentUserId();
+
+  if (!userId) {
+    console.error("[meeting] getMeetingById: no user session", { meetingId });
+    return null;
+  }
+
+  console.error("[meeting] getMeetingById:start", { meetingId, userId });
+
+  const supabase = await createSupabaseServerClient();
+  const { data: byIdData } = await supabase
+    .from("meeting")
+    .select(
+      `
+        id,
+        meeting_id,
+        host_id,
+        host_email,
+        topic,
+        status,
+        start_time,
+        duration,
+        timezone,
+        start_url,
+        join_url,
+        password,
+        meeting_created_at,
+        created_at,
+        order_id,
+        user_id
+      `,
+    )
+    .eq("id", meetingId)
+    .maybeSingle();
+
+  const byId = await hydrateMeetingRecord((byIdData as MeetingRecord | null) ?? null);
+
+  console.error("[meeting] getMeetingById:byId", { found: Boolean(byIdData), hydrated: Boolean(byId) });
+
+  if (byId) {
+    return byId;
+  }
+
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(meetingId);
+
+  if (isUuid) {
+    const { data: byOrderIdData } = await supabase
+      .from("meeting")
+      .select(
+        `
+          id,
+          meeting_id,
+          host_id,
+          host_email,
+          topic,
+          status,
+          start_time,
+          duration,
+          timezone,
+          start_url,
+          join_url,
+          password,
+          meeting_created_at,
+          created_at,
+          order_id,
+          user_id
+        `,
+      )
+      .eq("order_id", meetingId)
+      .maybeSingle();
+
+    const byOrderId = await hydrateMeetingRecord((byOrderIdData as MeetingRecord | null) ?? null);
+
+    console.error("[meeting] getMeetingById:byOrderId", { found: Boolean(byOrderIdData), hydrated: Boolean(byOrderId) });
+
+    if (byOrderId) {
+      return byOrderId;
     }
+  }
 
-    return order.meeting_request.meeting_date >= today || order.provisioning_status !== "success";
-  });
-});
+  const { data: byMeetingCodeData } = await supabase
+    .from("meeting")
+    .select(
+      `
+        id,
+        meeting_id,
+        host_id,
+        host_email,
+        topic,
+        status,
+        start_time,
+        duration,
+        timezone,
+        start_url,
+        join_url,
+        password,
+        meeting_created_at,
+        created_at,
+        order_id,
+        user_id
+      `,
+    )
+    .eq("meeting_id", meetingId)
+    .maybeSingle();
 
-export const getActiveProducts = cache(async (): Promise<ProductRecord[]> => {
+  return hydrateMeetingRecord((byMeetingCodeData as MeetingRecord | null) ?? null);
+}
+
+export async function requireMeetingById(meetingId: string) {
+  const meeting = await getMeetingById(meetingId);
+
+  if (!meeting) {
+    notFound();
+  }
+
+  return meeting;
+}
+
+export async function getActiveProducts(): Promise<ProductRecord[]> {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from("products")
@@ -151,14 +426,14 @@ export const getActiveProducts = cache(async (): Promise<ProductRecord[]> => {
     .order("created_at", { ascending: true });
 
   return (data as ProductRecord[] | null) ?? [];
-});
+}
 
-export const getPrimaryActiveProduct = cache(async () => {
+export async function getPrimaryActiveProduct() {
   const products = await getActiveProducts();
   return products[0] ?? null;
-});
+}
 
-export const getOrderByCode = cache(async (orderCode: string): Promise<OrderRecord | null> => {
+export async function getOrderByCode(orderCode: string): Promise<OrderRecord | null> {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from("orders")
@@ -183,15 +458,15 @@ export const getOrderByCode = cache(async (orderCode: string): Promise<OrderReco
         paydia_payload,
         created_at,
         product:products (id, name, duration_minutes, participant_limit),
-        meeting_request:meeting_requests (agenda, meeting_date, start_time, duration_minutes, timezone),
-        zoom_meeting:zoom_meetings (join_url, status)
+        meeting_request:meeting_requests (id, agenda, meeting_date, start_time, duration_minutes, timezone, notes),
+        meeting:meeting (id, meeting_id, host_id, host_email, topic, status, start_time, duration, timezone, start_url, join_url, password, meeting_created_at, created_at, order_id, user_id)
       `,
     )
     .eq("order_code", orderCode)
     .maybeSingle();
 
   return (data as OrderRecord | null) ?? null;
-});
+}
 
 export async function requireOrderByCode(orderCode: string) {
   const order = await getOrderByCode(orderCode);

@@ -18,8 +18,7 @@ create type public.provisioning_status as enum (
   'success',
   'failed'
 );
-create type public.manual_payment_status as enum ('submitted', 'approved', 'rejected');
-create type public.zoom_meeting_status as enum ('pending', 'generated', 'delivered', 'expired', 'failed');
+create type public.meeting_status as enum ('waiting', 'started', 'ended', 'cancelled');
 create type public.webhook_direction as enum ('outbound', 'inbound');
 create type public.webhook_status as enum ('pending', 'success', 'failed');
 
@@ -108,32 +107,22 @@ create table if not exists public.meeting_requests (
   updated_at timestamptz not null default timezone('utc', now())
 );
 
-create table if not exists public.manual_payments (
+create table if not exists public.meeting (
   id uuid primary key default gen_random_uuid(),
-  order_id uuid not null references public.orders (id) on delete cascade,
-  bank_name text not null,
-  account_name text not null,
-  transfer_amount bigint not null check (transfer_amount >= 0),
-  proof_file_path text not null,
-  status public.manual_payment_status not null default 'submitted',
-  admin_notes text,
-  submitted_at timestamptz not null default timezone('utc', now()),
-  reviewed_at timestamptz,
-  reviewed_by uuid references public.profiles (user_id) on delete set null,
-  created_at timestamptz not null default timezone('utc', now()),
-  updated_at timestamptz not null default timezone('utc', now())
-);
-
-create table if not exists public.zoom_meetings (
-  id uuid primary key default gen_random_uuid(),
-  order_id uuid not null unique references public.orders (id) on delete cascade,
-  provider text not null default 'zoom',
-  external_meeting_id text,
-  join_url text,
+  meeting_id text,
+  host_id text,
+  host_email text,
+  topic text,
+  status public.meeting_status not null default 'waiting',
+  start_time timestamptz,
+  duration integer,
+  timezone text not null default 'Asia/Jakarta',
   start_url text,
-  meeting_password text,
-  status public.zoom_meeting_status not null default 'pending',
-  generated_at timestamptz,
+  join_url text,
+  password text,
+  meeting_created_at timestamptz,
+  order_id uuid not null unique references public.orders (id) on delete cascade,
+  user_id uuid references auth.users (id) on delete set null,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
 );
@@ -163,9 +152,9 @@ create index if not exists idx_orders_paydia_partner_reference_no on public.orde
 create index if not exists idx_orders_paydia_reference_no on public.orders (paydia_reference_no);
 create index if not exists idx_orders_paydia_status on public.orders (paydia_status);
 create index if not exists idx_meeting_requests_meeting_date on public.meeting_requests (meeting_date);
-create index if not exists idx_manual_payments_order_id on public.manual_payments (order_id);
-create index if not exists idx_manual_payments_status on public.manual_payments (status);
-create index if not exists idx_zoom_meetings_status on public.zoom_meetings (status);
+create index if not exists idx_meeting_status on public.meeting (status);
+create index if not exists idx_meeting_order_id on public.meeting (order_id);
+create index if not exists idx_meeting_user_id on public.meeting (user_id);
 create index if not exists idx_webhook_logs_order_id on public.webhook_logs (order_id);
 create index if not exists idx_webhook_logs_source on public.webhook_logs (source);
 create index if not exists idx_webhook_logs_status on public.webhook_logs (status);
@@ -194,15 +183,9 @@ before update on public.meeting_requests
 for each row
 execute function public.set_updated_at();
 
-drop trigger if exists set_manual_payments_updated_at on public.manual_payments;
-create trigger set_manual_payments_updated_at
-before update on public.manual_payments
-for each row
-execute function public.set_updated_at();
-
-drop trigger if exists set_zoom_meetings_updated_at on public.zoom_meetings;
-create trigger set_zoom_meetings_updated_at
-before update on public.zoom_meetings
+drop trigger if exists set_meeting_updated_at on public.meeting;
+create trigger set_meeting_updated_at
+before update on public.meeting
 for each row
 execute function public.set_updated_at();
 
@@ -210,8 +193,7 @@ alter table public.profiles enable row level security;
 alter table public.products enable row level security;
 alter table public.orders enable row level security;
 alter table public.meeting_requests enable row level security;
-alter table public.manual_payments enable row level security;
-alter table public.zoom_meetings enable row level security;
+alter table public.meeting enable row level security;
 alter table public.webhook_logs enable row level security;
 
 drop policy if exists "profiles_select_self_or_admin" on public.profiles;
@@ -312,55 +294,23 @@ with check (
   )
 );
 
-drop policy if exists "manual_payments_select_owner_or_admin" on public.manual_payments;
-create policy "manual_payments_select_owner_or_admin"
-on public.manual_payments
+drop policy if exists "meeting_select_owner_or_admin" on public.meeting;
+create policy "meeting_select_owner_or_admin"
+on public.meeting
 for select
 using (
-  exists (
+  user_id = auth.uid()
+  or exists (
     select 1
     from public.orders
-    where orders.id = manual_payments.order_id
+    where orders.id = meeting.order_id
       and (orders.user_id = auth.uid() or public.is_admin())
   )
 );
 
-drop policy if exists "manual_payments_insert_owner" on public.manual_payments;
-create policy "manual_payments_insert_owner"
-on public.manual_payments
-for insert
-with check (
-  exists (
-    select 1
-    from public.orders
-    where orders.id = manual_payments.order_id
-      and orders.user_id = auth.uid()
-  )
-);
-
-drop policy if exists "manual_payments_update_admin_only" on public.manual_payments;
-create policy "manual_payments_update_admin_only"
-on public.manual_payments
-for update
-using (public.is_admin())
-with check (public.is_admin());
-
-drop policy if exists "zoom_meetings_select_owner_or_admin" on public.zoom_meetings;
-create policy "zoom_meetings_select_owner_or_admin"
-on public.zoom_meetings
-for select
-using (
-  exists (
-    select 1
-    from public.orders
-    where orders.id = zoom_meetings.order_id
-      and (orders.user_id = auth.uid() or public.is_admin())
-  )
-);
-
-drop policy if exists "zoom_meetings_admin_manage" on public.zoom_meetings;
-create policy "zoom_meetings_admin_manage"
-on public.zoom_meetings
+drop policy if exists "meeting_admin_manage" on public.meeting;
+create policy "meeting_admin_manage"
+on public.meeting
 for all
 using (public.is_admin())
 with check (public.is_admin());

@@ -2,9 +2,9 @@ import Link from "next/link";
 import { FileText, Video } from "lucide-react";
 import { NbButton } from "@/components/neo/nb-button";
 import { NbCard, NbCardContent } from "@/components/neo/nb-card";
-import { getTransactionHistory, type OrderListItem } from "@/lib/orders";
+import { getTransactionHistory, type TransactionRecord } from "@/lib/orders";
 
-function formatMeetingDate(order: OrderListItem) {
+function formatMeetingDate(order: TransactionRecord) {
   if (!order.meeting_request) {
     return "Jadwal belum ditentukan";
   }
@@ -17,13 +17,13 @@ function formatMeetingDate(order: OrderListItem) {
   return `${dateLabel} • ${timeLabel} WIB • ${order.meeting_request.duration_minutes} menit`;
 }
 
-function getTopic(order: OrderListItem) {
+function getTopic(order: TransactionRecord) {
   return order.meeting_request?.agenda ?? order.product?.name ?? "Order meeting";
 }
 
-function getMeetingStatus(order: OrderListItem) {
-  if (order.zoom_meeting?.status) {
-    return order.zoom_meeting.status;
+function getMeetingStatus(order: TransactionRecord) {
+  if (order.meeting?.status) {
+    return order.meeting.status;
   }
 
   if (order.provisioning_status === "success") {
@@ -110,7 +110,7 @@ export default async function TransactionsPage() {
                             </Link>
                           </NbButton>
                           <NbButton asChild className="h-10 w-10 bg-[#ff6b6b] p-0" aria-label={`Lihat status meeting ${meeting.order_code}`} title="Status Meeting">
-                            <Link href={`/dashboard/orders/${meeting.order_code}/meeting`}>
+                            <Link href={meeting.meeting ? `/dashboard/meeting/${meeting.meeting.id}` : "/dashboard/meeting"}>
                               <Video className="size-4" />
                             </Link>
                           </NbButton>
