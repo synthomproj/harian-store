@@ -84,7 +84,7 @@ export default function HomePage() {
 
             <div className="flex flex-wrap gap-3">
               <Button asChild size="lg" className="bg-[#00d1ff] text-slate-950 hover:bg-[#7cecff]">
-                <Link href="/register">Mulai Pesan</Link>
+                <Link href="/login">Mulai Pesan</Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="bg-white hover:bg-[#ff8fab]">
                 <Link href="/products">Lihat Paket</Link>
