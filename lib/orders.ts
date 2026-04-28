@@ -69,6 +69,18 @@ type OrderMeetingMeta = {
   } | null;
 };
 
+const orderMeetingMetaSelect = `
+  id,
+  order_code,
+  status,
+  payment_status,
+  provisioning_status,
+  total_amount,
+  created_at,
+  product:products (id, name, duration_minutes, participant_limit),
+  meeting_request:meeting_requests (id, agenda, meeting_date, start_time, duration_minutes, timezone, notes)
+`;
+
 export type OrderRecord = {
   id: string;
   order_code: string;
@@ -189,20 +201,25 @@ async function getOrdersByIds(orderIds: string[]) {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from("orders")
-    .select(
-      `
-        id,
-        order_code,
-        status,
-        payment_status,
-        provisioning_status,
-        total_amount,
-        created_at,
-        product:products (id, name, duration_minutes, participant_limit),
-        meeting_request:meeting_requests (id, agenda, meeting_date, start_time, duration_minutes, timezone, notes)
-      `,
-    )
+    .select(orderMeetingMetaSelect)
     .in("id", orderIds);
+
+  return (data as OrderMeetingMeta[] | null) ?? [];
+}
+
+async function getOrderMeetingMetaForCurrentUser() {
+  const userId = await getCurrentUserId();
+
+  if (!userId) {
+    return [] as OrderMeetingMeta[];
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("orders")
+    .select(orderMeetingMetaSelect)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
 
   return (data as OrderMeetingMeta[] | null) ?? [];
 }
@@ -212,14 +229,8 @@ export async function getTransactionHistory(): Promise<TransactionRecord[]> {
 }
 
 export async function getActiveMeetings(): Promise<MeetingRecord[]> {
-  const userId = await getCurrentUserId();
-
-  if (!userId) {
-    return [];
-  }
-
-  const transactions = await getTransactionsForCurrentUser();
-  const ownedOrderIds = transactions.map((transaction) => transaction.id);
+  const orders = await getOrderMeetingMetaForCurrentUser();
+  const ownedOrderIds = orders.map((order) => order.id);
 
   if (ownedOrderIds.length === 0) {
     return [];
@@ -252,7 +263,6 @@ export async function getActiveMeetings(): Promise<MeetingRecord[]> {
     .order("created_at", { ascending: false });
 
   const meetings = (data as MeetingRecord[] | null) ?? [];
-  const orders = await getOrdersByIds(meetings.map((meeting) => meeting.order_id));
   const orderMap = new Map(orders.map((order) => [order.id, order]));
 
   return meetings
