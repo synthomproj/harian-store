@@ -1,5 +1,5 @@
 import type { User } from "@supabase/supabase-js";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 function getDisplayName(user: User) {
   const fullName = user.user_metadata?.full_name;
@@ -14,7 +14,7 @@ function getDisplayName(user: User) {
 }
 
 export async function ensureProfileForUser(user: User) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   const { data: existingProfile } = await supabase
     .from("profiles")
