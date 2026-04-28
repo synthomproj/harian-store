@@ -2,7 +2,7 @@ import Link from "next/link";
 
 const footerLinks = {
   produk: [
-    { href: "/products", label: "Paket Meeting" },
+    { href: "/register", label: "Buat Akun" },
     { href: "/login", label: "Masuk" },
   ],
   alur: [

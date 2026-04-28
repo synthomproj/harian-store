@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { LoginForm } from "@/components/auth/login-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -47,6 +48,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </CardHeader>
           <CardContent>
             <LoginForm message={message} />
+
+            <p className="mt-6 text-center text-sm text-black/70">
+              Belum punya akun?{" "}
+              <Link href="/register" className="font-black text-black underline decoration-2 underline-offset-4 hover:text-black/70">
+                Daftar sekarang
+              </Link>
+            </p>
           </CardContent>
         </Card>
       </div>

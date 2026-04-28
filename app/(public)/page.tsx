@@ -45,10 +45,10 @@ const faqs = [
     question: "Apakah pelanggan harus login sebelum memesan?",
     answer: "Ya. Anda perlu login agar pesanan, pembayaran, dan link meeting tersimpan rapi di akun Anda dan mudah dicek kapan saja.",
   },
-  {
-    question: "Bagaimana metode pembayarannya?",
-    answer: "Saat ini pembayaran dilakukan secara manual. Anda tinggal mengikuti instruksi transfer lalu mengunggah bukti pembayaran dari detail pesanan.",
-  },
+  // {
+  //   question: "Bagaimana metode pembayarannya?",
+  //   answer: "Saat ini pembayaran dilakukan secara manual. Anda tinggal mengikuti instruksi transfer lalu mengunggah bukti pembayaran dari detail pesanan.",
+  // },
   {
     question: "Kapan link Zoom tersedia?",
     answer: "Link meeting akan tersedia setelah pembayaran selesai diproses. Anda bisa melihatnya langsung dari dashboard akun.",
@@ -70,46 +70,8 @@ const faqs = [
 export default function HomePage() {
   return (
     <main className="bg-[linear-gradient(180deg,_#fff7d6_0%,_#fff7d6_100%)] text-slate-950">
-      <section className="mx-auto w-full max-w-6xl gap-10 px-6 py-16 lg:py-24">
-        <div className="space-y-8">
-          <div className="space-y-4 rounded-[2rem] border-4 border-black bg-[#ffe066] p-8 shadow-[10px_10px_0_0_#000] lg:p-10">
-            <Badge className="w-fit bg-[#ff6b6b] text-black hover:bg-[#ff6b6b]">Zoom Meeting Rental</Badge>
-            <h1 className="max-w-4xl text-4xl font-black tracking-tight text-black lg:text-6xl lg:leading-[1.05]">
-              Sewa meeting Zoom yang simpel untuk personal, kelas online, dan UMKM.
-            </h1>
-            <p className="max-w-2xl text-base leading-7 text-black/80 lg:text-lg">
-              Tidak perlu repot langganan akun mahal untuk kebutuhan sesekali. Pilih paket,
-              kirim pesanan, lalu akses link meeting Anda dari dashboard yang rapi dan mudah dicek.
-            </p>
-
-            <div className="flex flex-wrap gap-3">
-              <Button asChild size="lg" className="bg-[#00d1ff] text-slate-950 hover:bg-[#7cecff]">
-                <Link href="/login">Mulai Pesan</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="bg-white hover:bg-[#ff8fab]">
-                <Link href="/products">Lihat Paket</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="solutions" className="mx-auto grid w-full max-w-6xl gap-4 px-6 py-8 md:grid-cols-3 lg:py-14">
-        {features.map((item) => (
-          <Card key={item.title} className="bg-white">
-            <CardHeader>
-              <Badge variant="secondary" className="w-fit bg-[#b8f2e6] text-black">
-                {item.stat}
-              </Badge>
-              <CardTitle className="text-xl text-black">{item.title}</CardTitle>
-              <CardDescription className="leading-6 text-black/75">{item.description}</CardDescription>
-            </CardHeader>
-          </Card>
-        ))}
-      </section>
-
-
-      <section id="pricing" className="bg-[#ff8fab] py-16 text-slate-950 lg:py-24 border-y-4 border-black">
+      
+       <section id="pricing" className="bg-[#ff8fab] py-16 text-slate-950 lg:py-24 border-y-4 border-black">
         <div className="mx-auto grid w-full max-w-6xl gap-8 px-6 lg:grid-cols-[0.7fr_1.3fr] lg:items-center">
           <div className="space-y-4">
             <Badge className="bg-white text-black">Paket Harian Murah</Badge>
@@ -126,7 +88,6 @@ export default function HomePage() {
               <div className="space-y-6">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-black uppercase tracking-[0.22em] text-black">Best Entry Offer</p>
                     <h3 className="mt-2 text-3xl font-black tracking-tight text-black lg:text-4xl">Paket Harian 100 Peserta</h3>
                   </div>
                 </div>
@@ -163,6 +124,44 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* <section className="mx-auto w-full max-w-6xl gap-10 px-6 py-16 lg:py-24">
+        <div className="space-y-8">
+          <div className="space-y-4 rounded-[2rem] border-4 border-black bg-[#ffe066] p-8 shadow-[10px_10px_0_0_#000] lg:p-10">
+            <Badge className="w-fit bg-[#ff6b6b] text-black hover:bg-[#ff6b6b]">Zoom Meeting Rental</Badge>
+            <h1 className="max-w-4xl text-4xl font-black tracking-tight text-black lg:text-6xl lg:leading-[1.05]">
+              Sewa meeting Zoom yang simpel untuk personal, kelas online, dan UMKM.
+            </h1>
+            <p className="max-w-2xl text-base leading-7 text-black/80 lg:text-lg">
+              Tidak perlu repot langganan akun mahal untuk kebutuhan sesekali. Pilih paket,
+              kirim pesanan, lalu akses link meeting Anda dari dashboard yang rapi dan mudah dicek.
+            </p>
+
+            <div className="flex flex-wrap gap-3">
+              <Button asChild size="lg" className="bg-[#00d1ff] text-slate-950 hover:bg-[#7cecff]">
+                <Link href="/register">Mulai Pesan</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="bg-white hover:bg-[#ff8fab]">
+                <Link href="/products">Lihat Paket</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section> */}
+
+      <section id="solutions" className="mx-auto grid w-full max-w-6xl gap-4 px-6 py-8 md:grid-cols-3 lg:py-14">
+        {features.map((item) => (
+          <Card key={item.title} className="bg-white">
+            <CardHeader>
+              <Badge variant="secondary" className="w-fit bg-[#b8f2e6] text-black">
+                {item.stat}
+              </Badge>
+              <CardTitle className="text-xl text-black">{item.title}</CardTitle>
+              <CardDescription className="leading-6 text-black/75">{item.description}</CardDescription>
+            </CardHeader>
+          </Card>
+        ))}
       </section>
 
       <section className="mx-auto w-full max-w-6xl px-6 py-16 lg:py-24">

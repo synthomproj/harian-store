@@ -81,6 +81,9 @@ export function SiteHeader() {
           <Button asChild variant="outline" size="sm" className="rounded-full border-2 border-black bg-white px-5 font-black hover:bg-[#ffe066]">
             <Link href="/login">Masuk</Link>
           </Button>
+          <Button asChild size="sm" className="rounded-full border-2 border-black bg-[#00d1ff] px-5 font-black text-black shadow-[4px_4px_0_0_#000] hover:bg-[#7cecff] hover:text-black">
+            <Link href="/register">Mulai Sekarang</Link>
+          </Button>
         </div>
 
         <div className="flex items-center gap-2 sm:hidden">
@@ -121,6 +124,11 @@ export function SiteHeader() {
               <Button asChild variant="outline" size="sm" className="w-full rounded-full border-2 border-black bg-white font-black hover:bg-[#ffe066]">
                 <Link href="/login" onClick={() => setIsMenuOpen(false)}>
                   Masuk
+                </Link>
+              </Button>
+              <Button asChild size="sm" className="w-full rounded-full border-2 border-black bg-[#00d1ff] font-black text-black shadow-[4px_4px_0_0_#000] hover:bg-[#7cecff] hover:text-black">
+                <Link href="/register" onClick={() => setIsMenuOpen(false)}>
+                  Mulai Sekarang
                 </Link>
               </Button>
             </div>

@@ -6,15 +6,15 @@ const ADMIN_PREFIX = "/admin";
 const AUTH_PAGES = ["/login", "/register"];
 
 export async function proxy(request: NextRequest) {
-  const response = await updateSession(request);
+  const { response, user } = await updateSession(request);
   const pathname = request.nextUrl.pathname;
-  const hasAuthCookies = request.cookies.getAll().some((cookie) => cookie.name.startsWith("sb-"));
+  const isAuthenticated = Boolean(user);
 
-  if ((pathname.startsWith(USER_PREFIX) || pathname.startsWith(ADMIN_PREFIX)) && !hasAuthCookies) {
+  if ((pathname.startsWith(USER_PREFIX) || pathname.startsWith(ADMIN_PREFIX)) && !isAuthenticated) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (hasAuthCookies && AUTH_PAGES.includes(pathname)) {
+  if (isAuthenticated && AUTH_PAGES.includes(pathname)) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

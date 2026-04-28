@@ -2,6 +2,11 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import { getSupabaseEnv } from "@/lib/env";
 
+export type SessionUser = {
+  id: string;
+  email?: string | null;
+};
+
 export async function updateSession(request: NextRequest) {
   const response = NextResponse.next({
     request,
@@ -23,7 +28,17 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  return response;
+  return {
+    response,
+    user: user
+      ? {
+          id: user.id,
+          email: user.email,
+        }
+      : null,
+  };
 }
