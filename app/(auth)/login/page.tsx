@@ -5,15 +5,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 type LoginPageProps = {
   searchParams: Promise<{
     registered?: string;
+    error?: string;
   }>;
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const { registered } = await searchParams;
+  const { registered, error } = await searchParams;
   const message =
     registered === "1"
       ? "Akun berhasil dibuat. Silakan cek email Anda jika diminta verifikasi, lalu login kembali."
       : undefined;
+  const errorMessage =
+    error === "missing_code"
+      ? "Login Google gagal karena kode callback tidak ditemukan. Coba ulangi lagi."
+      : error === "session_not_found"
+        ? "Login Google berhasil, tapi session belum terbentuk di server. Coba ulangi sekali lagi."
+        : error
+          ? `Login Google gagal: ${error}`
+          : undefined;
 
   return (
     <main className="flex min-h-screen items-center justify-center px-6 py-12">
@@ -47,7 +56,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <LoginForm message={message} />
+            <LoginForm message={message} error={errorMessage} />
 
             <p className="mt-6 text-center text-sm text-black/70">
               Belum punya akun?{" "}

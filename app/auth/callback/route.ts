@@ -37,12 +37,14 @@ export async function GET(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (user) {
-    try {
-      await ensureProfileForUser(user);
-    } catch (error) {
-      console.error("Failed to ensure profile after OAuth callback", error);
-    }
+  if (!user) {
+    return NextResponse.redirect(new URL("/login?error=session_not_found", request.url));
+  }
+
+  try {
+    await ensureProfileForUser(user);
+  } catch (error) {
+    console.error("Failed to ensure profile after OAuth callback", error);
   }
 
   return response;

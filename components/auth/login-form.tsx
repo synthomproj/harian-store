@@ -9,11 +9,12 @@ import { Label } from "@/components/ui/label";
 
 type LoginFormProps = {
   message?: string;
+  error?: string;
 };
 
 const initialState: AuthActionState = {};
 
-export function LoginForm({ message }: LoginFormProps) {
+export function LoginForm({ message, error }: LoginFormProps) {
   const [state, formAction] = useActionState(loginAction, initialState);
 
   return (
@@ -21,6 +22,12 @@ export function LoginForm({ message }: LoginFormProps) {
       {message ? (
         <div className="rounded-[1rem] border-4 border-black bg-[#b8f2e6] px-4 py-3 text-sm font-medium text-black shadow-[6px_6px_0_0_#000]">
           {message}
+        </div>
+      ) : null}
+
+      {error ? (
+        <div className="rounded-[1rem] border-4 border-black bg-[#ff8fab] px-4 py-3 text-sm font-medium text-black shadow-[6px_6px_0_0_#000]">
+          {error}
         </div>
       ) : null}
 
