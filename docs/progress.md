@@ -65,6 +65,7 @@
 - [ ] Test webhook duplicate delivery
 - [ ] Test webhook untuk transaksi atau order yang tidak ditemukan
 - [ ] Test UI payment untuk status `unpaid`, `pending`, `approved`, `rejected`, atau `expired` jika dipakai
+- [x] Siapkan runbook verifikasi manual Phase 2 di `docs/paydia-phase-2-verification.md`
 - [x] Audit referensi flow pembayaran lama di UI, docs, dan API
 - [x] Hapus referensi `manual_payments` dari dokumen aktif MVP
 - [x] Update dokumen phase jika flow final `Paydia` berubah
