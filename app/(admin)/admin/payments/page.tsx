@@ -4,11 +4,11 @@ export default function AdminPaymentsPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Payment review queue</CardTitle>
-        <CardDescription>Antrian verifikasi transfer manual.</CardDescription>
+        <CardTitle>Payment monitoring</CardTitle>
+        <CardDescription>Daftar order dengan status pembayaran yang perlu perhatian.</CardDescription>
       </CardHeader>
       <CardContent className="text-sm text-slate-600">
-        Halaman ini akan membaca `manual_payments` dengan status `submitted`.
+        Halaman ini akan membaca field `Paydia` di `orders` untuk monitoring pembayaran.
       </CardContent>
     </Card>
   );

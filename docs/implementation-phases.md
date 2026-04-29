@@ -9,7 +9,7 @@ Tujuannya adalah:
 1. memastikan alur dibangun dari fondasi paling dasar
 2. mengurangi risiko perubahan besar di tengah jalan
 3. memudahkan validasi per milestone
-4. menjaga integrasi `Supabase`, admin review, dan `n8n` tetap terstruktur
+4. menjaga integrasi `Supabase`, pembayaran `Paydia`, dan `n8n` tetap terstruktur
 
 Dokumen ini mengikuti urutan implementasi yang sudah dirumuskan di `docs/purchase-to-n8n-flow.md`.
 
@@ -19,7 +19,7 @@ Dokumen ini mengikuti urutan implementasi yang sudah dirumuskan di `docs/purchas
 2. UI yang sudah ada dijadikan shell, lalu dihubungkan ke data nyata sedikit demi sedikit.
 3. Setiap phase harus menghasilkan flow yang lebih lengkap dan bisa diuji.
 4. Perubahan state order, payment, dan provisioning harus selalu konsisten.
-5. Integrasi eksternal ke `n8n` dilakukan setelah data internal dan admin flow stabil.
+5. Integrasi eksternal ke `Paydia` dan `n8n` dilakukan setelah data internal stabil.
 
 ## Phase 0: Foundation Check
 
@@ -35,7 +35,7 @@ Yang sudah tersedia saat ini:
 2. schema utama di `supabase/schema.sql`
 3. UI dashboard user dan admin
 4. UI flow beli paket, pembayaran, status pembayaran, dan meeting
-5. placeholder route untuk signed upload, provisioning trigger, dan callback `n8n`
+5. route payment `Paydia`, provisioning trigger, dan callback `n8n` sudah tersedia meski belum semuanya final
 
 ### Output
 
@@ -151,15 +151,14 @@ Menampilkan data nyata order, payment, dan meeting di dashboard user.
 1. halaman `Meeting` membaca order milik user aktif
 2. pisahkan data menjadi meeting akan datang dan meeting selesai
 3. halaman status pembayaran membaca data order dan payment terbaru
-4. halaman detail meeting membaca data `zoom_meetings`
+4. halaman detail meeting membaca data `meeting`
 5. tampilkan state kosong yang benar jika data belum tersedia
 
 ### Main Tables
 
 1. `orders`
 2. `meeting_requests`
-3. `manual_payments`
-4. `zoom_meetings`
+3. `meeting`
 
 ### Deliverables
 
@@ -172,48 +171,43 @@ Menampilkan data nyata order, payment, dan meeting di dashboard user.
 1. Phase 1 selesai
 2. idealnya Phase 2 selesai agar payment status sudah realistis
 
-## Phase 4: Admin Payment Review
+## Phase 4: Admin Payment Operations
 
 ### Goal
 
-Membangun alur admin untuk memeriksa, menyetujui, atau menolak pembayaran.
+Membangun alur admin untuk memantau dan menangani status pembayaran setelah flow beralih ke `Paydia`.
 
 ### Scope
 
-1. tampilkan daftar payment yang perlu direview di admin
-2. tampilkan detail bukti bayar per order
-3. buat action approve payment
-4. buat action reject payment
-5. simpan `admin_notes` saat reject
-6. update state `manual_payments`
-7. update state `orders`
+1. tampilkan daftar order dan payment yang perlu dipantau di admin
+2. tampilkan detail status `Paydia` per order
+3. tampilkan payload penting untuk audit operasional
+4. siapkan action operasional yang masih relevan, seperti refresh status atau retry step internal
+5. update state `orders` bila ada intervensi admin yang valid
 
 ### Main Tables
 
-1. `manual_payments`
-2. `orders`
-3. `profiles`
+1. `orders`
+2. `profiles`
 
 ### Expected State After Phase
 
-Jika approved:
+Jika payment confirmed:
 
-1. `manual_payments.status = approved`
-2. `orders.payment_status = approved`
-3. `orders.status = paid`
-4. `orders.provisioning_status = queued`
+1. `orders.payment_status = approved`
+2. `orders.status = paid`
+3. `orders.provisioning_status = queued` atau tetap `not_started` sampai trigger provisioning dijalankan
 
-Jika rejected:
+Jika payment gagal atau expired:
 
-1. `manual_payments.status = rejected`
-2. `orders.payment_status = rejected`
-3. `orders.status = rejected` atau tetap menunggu pembayaran ulang sesuai keputusan produk
+1. `orders.payment_status` mengikuti mapping status `Paydia`
+2. `orders.status` kembali ke state yang sesuai untuk retry atau dinyatakan gagal sesuai keputusan produk
 
 ### Deliverables
 
-1. admin bisa melakukan review pembayaran dari panel admin
-2. state order dan payment berubah sesuai aksi admin
-3. user bisa melihat hasil review di dashboard
+1. admin bisa memantau pembayaran dari panel admin
+2. state order dan payment terlihat konsisten dengan status provider
+3. user bisa melihat hasil pembayaran di dashboard
 
 ### Dependencies
 
@@ -275,7 +269,7 @@ Menerima hasil provisioning dari `n8n` dan menyimpan hasil meeting ke database.
 1. implement `/api/webhooks/n8n/provision`
 2. validasi secret atau signature callback
 3. parse payload callback
-4. upsert ke `zoom_meetings`
+4. upsert ke `meeting`
 5. update `orders.provisioning_status`
 6. update `orders.status`
 7. catat inbound log ke `webhook_logs`
@@ -283,7 +277,7 @@ Menerima hasil provisioning dari `n8n` dan menyimpan hasil meeting ke database.
 
 ### Main Tables
 
-1. `zoom_meetings`
+1. `meeting`
 2. `orders`
 3. `webhook_logs`
 
@@ -291,13 +285,13 @@ Menerima hasil provisioning dari `n8n` dan menyimpan hasil meeting ke database.
 
 Jika sukses:
 
-1. `zoom_meetings.status = generated` atau `delivered`
+1. `meeting.status = generated` atau `delivered`
 2. `orders.provisioning_status = success`
 3. `orders.status = completed`
 
 Jika gagal:
 
-1. `zoom_meetings.status = failed`
+1. `meeting.status = failed`
 2. `orders.provisioning_status = failed`
 3. `webhook_logs.status = failed`
 
@@ -330,7 +324,7 @@ Menampilkan hasil provisioning ke dashboard user secara penuh.
 
 1. `orders`
 2. `meeting_requests`
-3. `zoom_meetings`
+3. `meeting`
 
 ### Deliverables
 
@@ -368,9 +362,9 @@ Menstabilkan flow agar siap dipakai secara operasional.
 Urutan kerja yang disarankan:
 
 1. Phase 1: Order Creation
-2. Phase 2: Payment Proof Upload
+2. Phase 2: Paydia Payment Integration
 3. Phase 3: User Order and Meeting Read Model
-4. Phase 4: Admin Payment Review
+4. Phase 4: Admin Payment Operations
 5. Phase 5: Provision Trigger to n8n
 6. Phase 6: Callback Handler from n8n
 7. Phase 7: Delivery to User Dashboard
@@ -388,7 +382,7 @@ Sebuah phase dianggap selesai jika:
 
 ## Notes
 
-1. Phase 1 sampai 4 fokus pada stabilitas internal aplikasi.
+1. Phase 1 sampai 4 fokus pada stabilitas internal aplikasi dan payment.
 2. Phase 5 dan 6 fokus pada integrasi eksternal dengan `n8n`.
 3. Phase 7 memastikan hasil integrasi benar-benar sampai ke pengguna.
 4. Phase 8 adalah fase penguatan sebelum sistem dianggap cukup stabil untuk operasional harian.

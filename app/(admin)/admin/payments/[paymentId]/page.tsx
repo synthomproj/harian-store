@@ -11,10 +11,10 @@ export default async function AdminPaymentDetailPage({ params }: AdminPaymentDet
     <Card>
       <CardHeader>
         <CardTitle>Payment {paymentId}</CardTitle>
-        <CardDescription>Detail bukti pembayaran dan action approve/reject.</CardDescription>
+        <CardDescription>Detail status provider, referensi transaksi, dan data audit pembayaran.</CardDescription>
       </CardHeader>
       <CardContent className="text-sm text-slate-600">
-        Halaman ini akan menampilkan proof upload dan catatan review admin.
+        Halaman ini akan menampilkan detail transaksi `Paydia` dan konteks order terkait.
       </CardContent>
     </Card>
   );

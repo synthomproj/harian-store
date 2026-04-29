@@ -69,7 +69,6 @@ Prinsip yang dipakai:
 |-- /api
     |-- /api/webhooks/n8n/provision
     |-- /api/internal/orders/[orderId]/provision
-    |-- /api/storage/payment-proof/signed-upload
 ```
 
 ## Route Purpose
@@ -195,14 +194,14 @@ Konten utama:
 
 ### `/dashboard/orders/[orderCode]/payment`
 
-Halaman instruksi pembayaran dan upload bukti.
+Halaman instruksi pembayaran dan status transaksi `Paydia`.
 
 Konten utama:
 
-1. nominal transfer
-2. rekening tujuan
-3. upload bukti pembayaran
-4. riwayat submit bukti jika ada retry
+1. nominal pembayaran
+2. status transaksi `Paydia`
+3. QRIS yang bisa discan user
+4. aksi refresh status pembayaran
 
 ### `/dashboard/orders/[orderCode]/meeting`
 
@@ -224,7 +223,7 @@ Dashboard ringkasan admin.
 Konten utama:
 
 1. total order aktif
-2. order menunggu review payment
+2. order dengan pembayaran yang perlu dipantau
 3. provisioning gagal
 4. produk aktif
 
@@ -248,30 +247,30 @@ Konten utama:
 1. profil pelanggan
 2. detail produk
 3. detail agenda meeting
-4. bukti pembayaran terakhir
+4. status pembayaran dan referensi provider
 5. status provisioning
-6. action approve, reject, retry
+6. action operasional seperti retry atau investigasi
 
 ### `/admin/payments`
 
-Daftar review pembayaran.
+Daftar monitoring pembayaran.
 
 Tujuan:
 
-1. fokus ke antrean verifikasi payment
-2. percepat review bukti transfer
+1. fokus ke order dengan status pembayaran yang perlu perhatian
+2. percepat investigasi status provider dan anomali operasional
 
 ### `/admin/payments/[paymentId]`
 
-Detail satu submission pembayaran.
+Detail satu record pembayaran atau status provider.
 
 Konten utama:
 
-1. bukti transfer
-2. nilai transfer
-3. akun pengirim
+1. status provider
+2. nominal transaksi
+3. reference transaksi
 4. order terkait
-5. tombol approve atau reject
+5. payload penting untuk audit
 
 ### `/admin/products`
 
@@ -332,10 +331,6 @@ Catatan:
 
 1. Pada implementasi awal, route ini bisa dipanggil oleh server action admin.
 2. Di fase lanjut, route ini bisa digantikan oleh job queue.
-
-### `/api/storage/payment-proof/signed-upload`
-
-Route untuk generate signed upload bila penyimpanan bukti bayar dilakukan melalui `Supabase Storage`.
 
 ## Suggested App Router Structure
 
@@ -407,10 +402,6 @@ app/
         [orderId]/
           provision/
             route.ts
-    storage/
-      payment-proof/
-        signed-upload/
-          route.ts
 ```
 
 ## Access Control Mapping
@@ -452,7 +443,6 @@ app/
 
 1. `/api/webhooks/n8n/provision`
 2. `/api/internal/orders/[orderId]/provision`
-3. `/api/storage/payment-proof/signed-upload`
 
 ## Future Route Extensions
 
@@ -470,5 +460,4 @@ Route ini belum dibutuhkan di MVP, tapi kemungkinan besar akan muncul di fase be
 1. Gunakan layout terpisah untuk `(public)`, `(user)`, dan `(admin)` agar navigasi dan guard tidak bercampur.
 2. Gunakan `orderCode` di URL customer-facing agar lebih operasional dibanding UUID mentah.
 3. Detail page admin tetap dapat memakai `orderCode` untuk mempermudah pencarian manual.
-4. Untuk upload bukti bayar, storage sebaiknya tidak diakses publik langsung.
-5. Route internal provisioning harus diproteksi agar tidak bisa dipanggil sembarang klien browser.
+4. Route internal provisioning harus diproteksi agar tidak bisa dipanggil sembarang klien browser.

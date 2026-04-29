@@ -47,7 +47,7 @@ const faqs = [
   },
   // {
   //   question: "Bagaimana metode pembayarannya?",
-  //   answer: "Saat ini pembayaran dilakukan secara manual. Anda tinggal mengikuti instruksi transfer lalu mengunggah bukti pembayaran dari detail pesanan.",
+  //   answer: "Saat ini pembayaran dilakukan lewat QRIS Paydia dan statusnya bisa dipantau langsung dari detail pesanan.",
   // },
   {
     question: "Kapan link Zoom tersedia?",

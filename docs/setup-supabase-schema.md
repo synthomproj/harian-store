@@ -35,9 +35,8 @@ Tetap disarankan menjalankan query ini pada database yang memang dipakai khusus 
 2. `products`
 3. `orders`
 4. `meeting_requests`
-5. `manual_payments`
-6. `zoom_meetings`
-7. `webhook_logs`
+5. `meeting`
+6. `webhook_logs`
 
 ## Enum Yang Akan Dibuat
 
@@ -45,10 +44,9 @@ Tetap disarankan menjalankan query ini pada database yang memang dipakai khusus 
 2. `order_status`
 3. `payment_status`
 4. `provisioning_status`
-5. `manual_payment_status`
-6. `zoom_meeting_status`
-7. `webhook_direction`
-8. `webhook_status`
+5. `zoom_meeting_status`
+6. `webhook_direction`
+7. `webhook_status`
 
 ## Verifikasi Setelah Setup
 
@@ -63,8 +61,7 @@ where table_schema = 'public'
     'products',
     'orders',
     'meeting_requests',
-    'manual_payments',
-    'zoom_meetings',
+    'meeting',
     'webhook_logs'
   )
 order by table_name;

@@ -14,10 +14,10 @@ export default function AdminPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Review Payment</CardTitle>
-            <CardDescription>Submission transfer yang perlu diverifikasi.</CardDescription>
+            <CardTitle>Monitor Payment</CardTitle>
+            <CardDescription>Status transaksi yang perlu dipantau.</CardDescription>
           </CardHeader>
-          <CardContent className="text-sm text-slate-600">Menunggu implementasi table payments.</CardContent>
+          <CardContent className="text-sm text-slate-600">Akan membaca status `Paydia` dari `orders`.</CardContent>
         </Card>
         <Card>
           <CardHeader>
@@ -36,7 +36,7 @@ export default function AdminPage() {
       </section>
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <RouteCard href="/admin/orders" title="Kelola Orders" description="Monitor order pelanggan dan status prosesnya." />
-        <RouteCard href="/admin/payments" title="Review Payments" description="Approve atau reject bukti pembayaran manual." />
+        <RouteCard href="/admin/payments" title="Monitor Payments" description="Pantau status transaksi dan anomali pembayaran." />
         <RouteCard href="/admin/products" title="Kelola Produk" description="Tambah dan edit paket meeting yang dijual." />
       </section>
     </>

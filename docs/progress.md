@@ -16,7 +16,7 @@
 
 ### Status
 
-- [ ] Belum selesai
+- [~] Sedang berjalan
 
 ### Checklist
 
@@ -36,7 +36,7 @@
 - [x] Simpan response penting `Paydia` ke `orders`
 - [x] Set `payment_provider = 'paydia'`
 - [x] Set `payment_status` ke `pending` atau status internal final yang disepakati
-- [x] Ubah halaman payment user dari upload bukti bayar ke flow `Paydia SNAP QRIS`
+- [x] Ubah halaman payment user dari flow lama ke `Paydia SNAP QRIS`
 - [x] Tampilkan nominal, status pembayaran, expiry, dan data QRIS
 - [x] Tampilkan state jika QRIS belum ada, expired, atau gagal dibuat
 - [x] Tampilkan status terbaru dari `orders.paydia_status` dan `orders.payment_status`
@@ -50,7 +50,7 @@
 - [x] Saat payment confirmed, ubah `orders.status` ke `paid`
 - [ ] Pastikan provisioning belum berjalan sebelum payment valid
 - [ ] Pastikan repeat webhook tetap idempotent
-- [ ] Simpan payload penting create transaction dan webhook untuk audit atau debug
+- [x] Simpan payload penting create transaction dan webhook untuk audit atau debug di `orders.paydia_payload`
 - [ ] Putuskan apakah inbound webhook juga dicatat ke `webhook_logs`
 - [x] Siapkan status inquiry sebagai fallback jika webhook belum diterima
 - [x] Simpan credential `Paydia` di environment variables
@@ -65,25 +65,25 @@
 - [ ] Test webhook duplicate delivery
 - [ ] Test webhook untuk transaksi atau order yang tidak ditemukan
 - [ ] Test UI payment untuk status `unpaid`, `pending`, `approved`, `rejected`, atau `expired` jika dipakai
-- [x] Audit referensi `manual_payments` dan upload bukti bayar di UI, docs, dan API
-- [ ] Putuskan apakah `manual_payments` dibiarkan sementara atau dihapus total
-- [ ] Update dokumen phase jika flow final `Paydia` berubah
+- [x] Audit referensi flow pembayaran lama di UI, docs, dan API
+- [x] Hapus referensi `manual_payments` dari dokumen aktif MVP
+- [x] Update dokumen phase jika flow final `Paydia` berubah
 
 ## Phase 3: User Order and Meeting Read Model
 
 ### Status
 
-- [ ] Belum mulai
+- [~] Sedang berjalan
 
 ### Checklist
 
-- [ ] Halaman `Meeting` membaca order milik user aktif
+- [x] Halaman `Meeting` membaca order milik user aktif
 - [ ] Pisahkan data menjadi meeting akan datang dan meeting selesai
-- [ ] Halaman status pembayaran membaca data order dan payment terbaru
-- [ ] Halaman detail meeting membaca data `zoom_meetings`
-- [ ] Tampilkan state kosong yang benar jika data belum tersedia
+- [x] Halaman status pembayaran membaca data order dan payment terbaru
+- [x] Halaman detail meeting membaca data `meeting`
+- [x] Tampilkan state kosong yang benar jika data belum tersedia
 
-## Phase 4: Admin Payment Review
+## Phase 4: Admin Payment Operations
 
 ### Status
 
@@ -91,11 +91,10 @@
 
 ### Checklist
 
-- [ ] Tampilkan daftar payment yang perlu direview di admin
-- [ ] Tampilkan detail pembayaran per order
-- [ ] Buat action approve payment
-- [ ] Buat action reject payment
-- [ ] Simpan `admin_notes` saat reject jika masih diperlukan pada desain final
+- [ ] Tampilkan daftar order dan payment yang perlu dipantau di admin
+- [ ] Tampilkan detail status `Paydia` per order
+- [ ] Tampilkan payload penting untuk audit operasional
+- [ ] Siapkan action operasional seperti refresh status atau retry step internal
 - [ ] Update state pembayaran
 - [ ] Update state order
 
@@ -103,11 +102,11 @@
 
 ### Status
 
-- [ ] Belum mulai
+- [~] Scaffold tersedia
 
 ### Checklist
 
-- [ ] Implement `/api/internal/orders/[orderId]/provision`
+- [x] Implement scaffold `/api/internal/orders/[orderId]/provision`
 - [ ] Ambil data order lengkap dari database
 - [ ] Bangun payload standar ke `n8n`
 - [ ] Kirim request outbound ke endpoint `n8n`
@@ -119,11 +118,11 @@
 
 ### Status
 
-- [ ] Belum mulai
+- [~] Scaffold tersedia
 
 ### Checklist
 
-- [ ] Terima hasil provisioning dari webhook
+- [x] Terima scaffold hasil provisioning dari webhook
 - [ ] Simpan hasil provisioning ke database
 - [ ] Update status order dan meeting sesuai hasil provisioning
 - [ ] Tampilkan hasil final ke user dashboard

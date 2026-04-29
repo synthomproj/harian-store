@@ -8,7 +8,7 @@ Dokumen ini menurunkan `docs/prd-mvp.md` menjadi model data awal untuk MVP Haria
 2. Data aplikasi disimpan di schema `public`.
 3. Satu order merepresentasikan satu permintaan meeting.
 4. Satu user dapat memiliki banyak order.
-5. Payment manual diverifikasi admin sebelum provisioning Zoom diproses.
+5. Payment utama disinkronkan dari `Paydia` sebelum provisioning Zoom diproses.
 6. `n8n` berfungsi sebagai automation layer, sedangkan source of truth tetap berada di database aplikasi.
 
 ## Entity Relationship Summary
@@ -33,8 +33,8 @@ Entitas utama transaksi pelanggan.
 - Satu `orders` dimiliki satu `profiles`
 - Satu `orders` mengacu ke satu `products`
 - Satu `orders` memiliki satu `meeting_requests`
-- Satu `orders` dapat memiliki banyak `manual_payments`
-- Satu `orders` dapat memiliki nol atau satu `zoom_meetings` aktif pada MVP
+- Satu `orders` menyimpan data transaksi `Paydia` langsung di kolom order
+- Satu `orders` dapat memiliki nol atau satu `meeting` aktif pada MVP
 
 ### `meeting_requests`
 
@@ -42,18 +42,11 @@ Menyimpan detail agenda meeting dari order.
 
 - Satu `meeting_requests` dimiliki satu `orders`
 
-### `manual_payments`
-
-Menyimpan bukti pembayaran manual yang dikirim pelanggan.
-
-- Satu `manual_payments` dimiliki satu `orders`
-- Banyak entri diperbolehkan untuk mendukung re-upload jika pembayaran ditolak
-
-### `zoom_meetings`
+### `meeting`
 
 Menyimpan hasil provisioning meeting Zoom.
 
-- Satu `zoom_meetings` dimiliki satu `orders`
+- Satu `meeting` dimiliki satu `orders`
 - Pada MVP, satu order hanya punya satu meeting aktif
 
 ### `webhook_logs`
@@ -69,8 +62,7 @@ erDiagram
   profiles ||--o{ orders : places
   products ||--o{ orders : selected_in
   orders ||--|| meeting_requests : has
-  orders ||--o{ manual_payments : receives
-  orders ||--o| zoom_meetings : provisions
+  orders ||--o| meeting : provisions
   orders ||--o{ webhook_logs : related_to
 
   profiles {
@@ -113,22 +105,12 @@ erDiagram
     text timezone
   }
 
-  manual_payments {
-    uuid id PK
-    uuid order_id FK
-    text bank_name
-    text account_name
-    bigint transfer_amount
-    text proof_file_path
-    text status
-  }
-
-  zoom_meetings {
+  meeting {
     uuid id PK
     uuid order_id UK
-    text provider
-    text external_meeting_id
+    text meeting_id
     text join_url
+    text start_url
     text status
   }
 
@@ -147,15 +129,13 @@ erDiagram
 1. `profiles.user_id` harus unik dan mereferensikan `auth.users.id`.
 2. `orders.user_id` harus mereferensikan `profiles.user_id`, bukan `profiles.id`, agar konsisten dengan identitas auth.
 3. `meeting_requests.order_id` harus unik untuk menjamin satu order hanya memiliki satu detail meeting.
-4. `zoom_meetings.order_id` dibuat unik pada MVP untuk menjamin satu order satu hasil meeting aktif.
-5. `manual_payments` tidak dibuat unik per order agar pelanggan bisa submit ulang setelah ditolak.
+4. `meeting.order_id` dibuat unik pada MVP untuk menjamin satu order satu hasil meeting aktif.
 
 ## State Design
 
 ### Order Status
 
 - `pending_payment`
-- `payment_review`
 - `paid`
 - `processing`
 - `completed`
@@ -165,7 +145,7 @@ erDiagram
 ### Payment Status
 
 - `unpaid`
-- `submitted`
+- `pending`
 - `approved`
 - `rejected`
 
@@ -177,19 +157,12 @@ erDiagram
 - `success`
 - `failed`
 
-### Manual Payment Status
-
-- `submitted`
-- `approved`
-- `rejected`
-
 ### Zoom Meeting Status
 
-- `pending`
-- `generated`
-- `delivered`
-- `expired`
-- `failed`
+- `waiting`
+- `started`
+- `ended`
+- `cancelled`
 
 ### Webhook Status
 
@@ -204,17 +177,16 @@ erDiagram
 1. User hanya dapat membaca dan mengubah profilnya sendiri.
 2. User hanya dapat melihat order miliknya sendiri.
 3. User hanya dapat membuat order untuk dirinya sendiri.
-4. User hanya dapat melihat detail meeting, payment, dan zoom meeting milik ordernya sendiri.
+4. User hanya dapat melihat detail meeting dan payment milik ordernya sendiri.
 
 ### Admin Access
 
 1. Admin dapat membaca seluruh data operasional.
-2. Admin dapat memverifikasi pembayaran, mengelola produk, dan memonitor provisioning.
+2. Admin dapat memonitor pembayaran, mengelola produk, dan memonitor provisioning.
 3. Pemeriksaan admin didasarkan pada `profiles.role = 'admin'`.
 
 ## Notes for Application Layer
 
 1. `order_code` perlu dibuat human-readable untuk kebutuhan operasional.
 2. `webhook_logs` sebaiknya menyimpan `payload` dalam `jsonb` dan ringkasan error untuk debugging.
-3. `proof_file_path` diarahkan ke `Supabase Storage` dan bukan URL mentah agar akses file bisa dikontrol.
-4. Semua mutation penting harus idempotent, terutama approval payment dan callback provisioning.
+3. Semua mutation penting harus idempotent, terutama sinkronisasi payment dan callback provisioning.

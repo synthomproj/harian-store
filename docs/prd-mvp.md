@@ -10,9 +10,9 @@ Draft v1
 
 ## Overview
 
-Harian Store adalah aplikasi web untuk pemesanan layanan meeting Zoom berbayar. Pelanggan dapat mendaftar, melengkapi profil, memilih paket meeting, mengajukan jadwal meeting, melakukan pembayaran manual, lalu menerima link Zoom di dashboard setelah pembayaran diverifikasi dan meeting berhasil dibuat melalui otomatisasi `n8n`.
+Harian Store adalah aplikasi web untuk pemesanan layanan meeting Zoom berbayar. Pelanggan dapat mendaftar, melengkapi profil, memilih paket meeting, mengajukan jadwal meeting, melakukan pembayaran melalui `Paydia` SNAP QRIS, lalu menerima link Zoom di dashboard setelah pembayaran terkonfirmasi dan meeting berhasil dibuat melalui otomatisasi `n8n`.
 
-MVP difokuskan untuk memvalidasi alur end-to-end dari pemesanan hingga delivery link meeting tanpa integrasi payment gateway otomatis.
+MVP difokuskan untuk memvalidasi alur end-to-end dari pemesanan hingga delivery link meeting dengan integrasi payment gateway `Paydia` sebagai flow pembayaran utama.
 
 ## Background
 
@@ -21,28 +21,27 @@ Proses penyediaan link Zoom secara manual rawan lambat, tidak konsisten, dan sul
 ## Goals
 
 1. Memungkinkan pelanggan memesan layanan meeting Zoom secara mandiri.
-2. Memungkinkan admin memverifikasi pembayaran manual dan memproses order dengan cepat.
+2. Memungkinkan admin memantau status pembayaran dan memproses order dengan cepat.
 3. Mengotomasi pembuatan meeting Zoom setelah pembayaran disetujui.
 4. Menyediakan dashboard pelanggan untuk melihat status order dan link meeting.
-5. Menyediakan fondasi untuk ekspansi ke beberapa paket produk dan payment gateway di fase berikutnya.
+5. Menyediakan fondasi untuk ekspansi ke beberapa paket produk dan automasi operasional di fase berikutnya.
 
 ## Non-Goals
 
-1. Integrasi payment gateway otomatis pada MVP.
-2. Pengiriman link meeting via WhatsApp, email, atau Telegram pada MVP.
-3. Mobile app native.
-4. Multi-tenant atau multi-vendor.
-5. Integrasi provider meeting lain selain Zoom.
+1. Pengiriman link meeting via WhatsApp, email, atau Telegram pada MVP.
+2. Mobile app native.
+3. Multi-tenant atau multi-vendor.
+4. Integrasi provider meeting lain selain Zoom.
 
 ## Target Users
 
 ### 1. Pelanggan
 
-Pengguna yang ingin memesan layanan meeting Zoom untuk agenda tertentu dan menerima link meeting setelah pembayaran diverifikasi.
+Pengguna yang ingin memesan layanan meeting Zoom untuk agenda tertentu dan menerima link meeting setelah pembayaran terkonfirmasi.
 
 ### 2. Admin Internal
 
-Operator internal yang mengelola paket, memeriksa pembayaran manual, memonitor provisioning, dan menangani kegagalan proses.
+Operator internal yang mengelola paket, memonitor pembayaran, memonitor provisioning, dan menangani kegagalan proses.
 
 ## Product Scope
 
@@ -52,9 +51,9 @@ Operator internal yang mengelola paket, memeriksa pembayaran manual, memonitor p
 2. Pengisian dan pengelolaan profil pelanggan.
 3. Katalog beberapa paket produk meeting.
 4. Form pemesanan meeting per order.
-5. Instruksi pembayaran manual.
-6. Upload bukti pembayaran.
-7. Verifikasi pembayaran oleh admin.
+5. Instruksi pembayaran via `Paydia` SNAP QRIS.
+6. Sinkronisasi status pembayaran dari `Paydia`.
+7. Monitoring pembayaran oleh admin.
 8. Trigger webhook ke `n8n` setelah pembayaran disetujui.
 9. Penyimpanan hasil link Zoom dari proses provisioning.
 10. Dashboard pelanggan untuk melihat status order dan link meeting.
@@ -73,7 +72,7 @@ Operator internal yang mengelola paket, memeriksa pembayaran manual, memonitor p
 1. Satu order merepresentasikan satu meeting.
 2. Pelanggan dapat membuat lebih dari satu order.
 3. Link meeting hanya ditampilkan di dashboard pelanggan.
-4. Pembayaran dilakukan secara manual dan diverifikasi manual oleh admin.
+4. Pembayaran utama dilakukan melalui `Paydia` dan status transaksi disinkronkan ke aplikasi.
 5. `n8n` bertindak sebagai automation layer untuk provisioning Zoom, bukan sebagai source of truth utama data aplikasi.
 6. Dashboard user dan admin dipisahkan.
 
@@ -86,9 +85,9 @@ Operator internal yang mengelola paket, memeriksa pembayaran manual, memonitor p
 3. Pelanggan memilih salah satu paket meeting.
 4. Pelanggan mengisi form pemesanan: agenda, tanggal, jam mulai, durasi, dan catatan opsional.
 5. Sistem membuat order dengan status awal menunggu pembayaran.
-6. Pelanggan melihat instruksi pembayaran manual.
-7. Pelanggan mengirim bukti pembayaran.
-8. Admin memverifikasi pembayaran.
+6. Pelanggan melihat instruksi pembayaran QRIS.
+7. Pelanggan menyelesaikan pembayaran di provider.
+8. Sistem menerima webhook atau melakukan inquiry status pembayaran.
 9. Jika pembayaran disetujui, sistem mengirim trigger ke `n8n`.
 10. `n8n` membuat meeting Zoom dan mengembalikan data meeting.
 11. Sistem menyimpan link Zoom dan memperbarui status order.
@@ -98,8 +97,8 @@ Operator internal yang mengelola paket, memeriksa pembayaran manual, memonitor p
 
 1. Admin login ke panel admin.
 2. Admin melihat daftar order masuk.
-3. Admin membuka detail order dan bukti pembayaran.
-4. Admin menyetujui atau menolak pembayaran.
+3. Admin membuka detail order dan status pembayaran.
+4. Admin memonitor hasil pembayaran dan anomali operasional.
 5. Jika disetujui, sistem memicu provisioning Zoom.
 6. Admin memonitor status provisioning.
 7. Jika gagal, admin dapat melakukan retry atau investigasi.
@@ -131,13 +130,13 @@ Operator internal yang mengelola paket, memeriksa pembayaran manual, memonitor p
 3. Pelanggan harus dapat memiliki lebih dari satu order.
 4. Pelanggan dapat melihat riwayat order miliknya.
 
-### Manual Payment
+### Payment via Paydia
 
-1. Sistem harus menampilkan instruksi pembayaran manual setelah order dibuat.
-2. Pelanggan harus dapat mengunggah bukti pembayaran.
+1. Sistem harus menampilkan instruksi pembayaran `Paydia` setelah order dibuat.
+2. Sistem harus dapat membuat transaksi `Paydia` untuk order milik user aktif.
 3. Sistem harus menyimpan status pembayaran secara terpisah dari status order.
-4. Admin harus dapat menyetujui atau menolak bukti pembayaran.
-5. Admin harus dapat memberi catatan saat menolak pembayaran.
+4. Sistem harus menerima webhook atau hasil inquiry untuk memperbarui status pembayaran.
+5. Admin harus dapat memantau status pembayaran dari panel admin.
 
 ### Provisioning via n8n
 
@@ -159,7 +158,7 @@ Operator internal yang mengelola paket, memeriksa pembayaran manual, memonitor p
 
 1. Admin harus dapat melihat semua order.
 2. Admin harus dapat memfilter order berdasarkan status.
-3. Admin harus dapat meninjau bukti pembayaran.
+3. Admin harus dapat meninjau status pembayaran dan data referensi provider.
 4. Admin harus dapat memonitor provisioning dan log webhook.
 5. Admin harus dapat mengelola produk.
 
@@ -167,7 +166,7 @@ Operator internal yang mengelola paket, memeriksa pembayaran manual, memonitor p
 
 1. Aplikasi harus responsif untuk desktop dan mobile web.
 2. Akses pelanggan ke link meeting harus aman dan hanya untuk pemilik order.
-3. Webhook ke dan dari `n8n` harus dilindungi dengan secret atau signature.
+3. Webhook pembayaran dan webhook ke atau dari `n8n` harus dilindungi dengan secret atau signature.
 4. Sistem harus menerapkan validasi input pada form penting.
 5. Sistem harus mencatat event penting untuk audit dasar.
 6. Semua waktu meeting pada MVP harus konsisten menggunakan timezone yang terdefinisi, default `Asia/Jakarta`.
@@ -222,31 +221,38 @@ Operator internal yang mengelola paket, memeriksa pembayaran manual, memonitor p
 7. `notes`
 8. `timezone`
 
-### manual_payments
+### paydia fields on orders
+
+1. `payment_provider`
+2. `paydia_transaction_id`
+3. `paydia_partner_reference_no`
+4. `paydia_reference_no`
+5. `paydia_payment_url`
+6. `paydia_qr_content`
+7. `paydia_status`
+8. `paydia_status_desc`
+9. `paydia_expires_at`
+10. `paydia_paid_at`
+11. `paydia_payload`
+
+### meeting
 
 1. `id`
-2. `order_id`
-3. `bank_name`
-4. `account_name`
-5. `transfer_amount`
-6. `proof_file_url`
-7. `submitted_at`
-8. `reviewed_at`
-9. `reviewed_by`
-10. `status`
-11. `admin_notes`
-
-### zoom_meetings
-
-1. `id`
-2. `order_id`
-3. `provider`
-4. `external_meeting_id`
-5. `join_url`
-6. `start_url`
-7. `meeting_password`
-8. `status`
-9. `generated_at`
+2. `meeting_id`
+3. `host_id`
+4. `host_email`
+5. `topic`
+6. `status`
+7. `start_time`
+8. `duration`
+9. `timezone`
+10. `start_url`
+11. `join_url`
+12. `password`
+13. `meeting_created_at`
+14. `created_at`
+15. `order_id`
+16. `user_id`
 
 ### webhook_logs
 
@@ -263,17 +269,16 @@ Operator internal yang mengelola paket, memeriksa pembayaran manual, memonitor p
 ### Order Status
 
 1. `pending_payment`
-2. `payment_review`
-3. `paid`
-4. `processing`
-5. `completed`
-6. `cancelled`
-7. `rejected`
+2. `paid`
+3. `processing`
+4. `completed`
+5. `cancelled`
+6. `rejected`
 
 ### Payment Status
 
 1. `unpaid`
-2. `submitted`
+2. `pending`
 3. `approved`
 4. `rejected`
 
@@ -287,25 +292,25 @@ Operator internal yang mengelola paket, memeriksa pembayaran manual, memonitor p
 
 ### Zoom Meeting Status
 
-1. `pending`
-2. `generated`
-3. `delivered`
-4. `expired`
+1. `waiting`
+2. `started`
+3. `ended`
+4. `cancelled`
 
 ## Success Metrics
 
-1. Pelanggan dapat menyelesaikan flow pemesanan hingga upload bukti pembayaran tanpa bantuan manual.
-2. Admin dapat memverifikasi pembayaran dan memicu provisioning tanpa proses di luar sistem.
+1. Pelanggan dapat menyelesaikan flow pemesanan hingga pembayaran QRIS tanpa bantuan manual.
+2. Admin dapat memantau pembayaran dan memicu provisioning tanpa proses di luar sistem.
 3. Meeting berhasil dibuat dan link tersedia di dashboard pelanggan untuk mayoritas order valid.
 4. Waktu operasional admin untuk menangani satu order lebih rendah dibanding proses manual penuh.
 
 ## Risks and Constraints
 
-1. Pembayaran manual menambah bottleneck pada proses admin.
-2. Bukti pembayaran dapat salah upload atau tidak valid.
-3. Provisioning Zoom melalui `n8n` dapat gagal atau timeout.
-4. Idempotensi webhook harus dijaga agar meeting tidak tergenerate ganda.
-5. Deployment `Next.js` di `Netlify` perlu diuji untuk memastikan route handlers dan auth flow berjalan stabil.
+1. Sinkronisasi status pembayaran dari provider dapat terlambat atau tidak konsisten bila webhook gagal.
+2. Provisioning Zoom melalui `n8n` dapat gagal atau timeout.
+3. Idempotensi webhook harus dijaga agar meeting tidak tergenerate ganda.
+4. Deployment `Next.js` di `Netlify` perlu diuji untuk memastikan route handlers dan auth flow berjalan stabil.
+5. Payload provider perlu dicatat secukupnya tanpa membuat audit trail sulit dibaca.
 
 ## MVP Release Priorities
 
@@ -318,9 +323,9 @@ Operator internal yang mengelola paket, memeriksa pembayaran manual, memonitor p
 
 ### Priority 2
 
-1. Upload bukti pembayaran manual.
-2. Verifikasi pembayaran oleh admin.
-3. Dashboard user dan admin terpisah.
+1. Pembayaran `Paydia` dan sinkronisasi status.
+2. Dashboard user dan admin terpisah.
+3. Monitoring pembayaran oleh admin.
 
 ### Priority 3
 
@@ -340,10 +345,9 @@ Operator internal yang mengelola paket, memeriksa pembayaran manual, memonitor p
 
 ## Open Questions
 
-1. Apakah bukti pembayaran hanya menerima image atau juga PDF?
-2. Apakah pelanggan boleh mengubah detail meeting sebelum pembayaran disetujui?
-3. Apakah admin membutuhkan fitur bulk review pembayaran pada fase berikutnya?
-4. Apakah paket di masa depan akan dibedakan hanya berdasarkan durasi dan limit peserta, atau juga jumlah meeting?
+1. Apakah pelanggan boleh mengubah detail meeting sebelum pembayaran disetujui?
+2. Apakah admin membutuhkan fitur bulk monitoring pembayaran pada fase berikutnya?
+3. Apakah paket di masa depan akan dibedakan hanya berdasarkan durasi dan limit peserta, atau juga jumlah meeting?
 
 ## Future Enhancements
 

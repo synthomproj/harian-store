@@ -17,11 +17,11 @@ Dokumen ini disusun berdasarkan struktur route, schema database, dan desain inte
 
 ### Customer
 
-Pelanggan yang membeli paket, mengisi detail meeting, dan mengunggah bukti pembayaran.
+Pelanggan yang membeli paket, mengisi detail meeting, lalu menyelesaikan pembayaran.
 
 ### Admin
 
-Operator internal yang memverifikasi pembayaran dan memicu provisioning meeting.
+Operator internal yang memantau pembayaran dan memicu provisioning meeting.
 
 ### App Server
 
@@ -29,7 +29,7 @@ Aplikasi Next.js yang mengelola session, mutation data, route internal, dan call
 
 ### Supabase
 
-Digunakan untuk auth, database, dan storage bukti pembayaran.
+Digunakan untuk auth dan database aplikasi.
 
 ### n8n
 
@@ -90,33 +90,32 @@ Kolom penting:
 6. `timezone`
 7. `notes`
 
-### `manual_payments`
+### payment fields on `orders`
 
-Menyimpan bukti pembayaran manual.
+Menyimpan data transaksi `Paydia` langsung pada order.
 
 Kolom penting:
 
-1. `order_id`
-2. `bank_name`
-3. `account_name`
-4. `transfer_amount`
-5. `proof_file_path`
-6. `status`
-7. `admin_notes`
+1. `payment_provider`
+2. `paydia_reference_no`
+3. `paydia_partner_reference_no`
+4. `paydia_qr_content`
+5. `paydia_status`
+6. `paydia_status_desc`
+7. `paydia_paid_at`
 
-### `zoom_meetings`
+### `meeting`
 
 Menyimpan hasil provisioning Zoom.
 
 Kolom penting:
 
 1. `order_id`
-2. `provider`
-3. `external_meeting_id`
-4. `join_url`
-5. `start_url`
-6. `meeting_password`
-7. `status`
+2. `meeting_id`
+3. `join_url`
+4. `start_url`
+5. `password`
+6. `status`
 
 ### `webhook_logs`
 
@@ -144,7 +143,6 @@ Kolom penting:
 
 ### Integration Routes
 
-1. `/api/storage/payment-proof/signed-upload`
 2. `/api/internal/orders/[orderId]/provision`
 3. `/api/webhooks/n8n/provision`
 
@@ -218,36 +216,27 @@ Setelah order dibuat, user diarahkan ke halaman pembayaran.
 
 Tujuan halaman ini:
 
-1. menampilkan nominal transfer
-2. menampilkan rekening tujuan
-3. menyediakan area upload bukti pembayaran
+1. menampilkan nominal pembayaran
+2. menampilkan QRIS yang harus discan
+3. menampilkan status transaksi `Paydia`
 4. mengarahkan user ke status pembayaran
 
-### 5. Customer uploads payment proof
+### 5. Customer completes Paydia payment
 
-Alur upload bukti bayar direncanakan seperti berikut:
+Alur pembayaran direncanakan seperti berikut:
 
-1. frontend meminta signed upload ke `/api/storage/payment-proof/signed-upload`
-2. file diunggah ke `Supabase Storage`
-3. aplikasi menyimpan row baru di `manual_payments`
+1. frontend atau server action membuat transaksi `Paydia`
+2. aplikasi menyimpan referensi transaksi dan QRIS ke `orders`
+3. pelanggan melakukan scan dan menyelesaikan pembayaran di provider
 
-Data minimal `manual_payments`:
+Setelah transaksi dibuat, order diperbarui menjadi:
 
-1. `order_id`
-2. `bank_name`
-3. `account_name`
-4. `transfer_amount`
-5. `proof_file_path`
-6. `status = submitted`
+1. `orders.payment_status = pending`
+2. `orders.status` tetap pada state menunggu pembayaran sampai ada konfirmasi
 
-Setelah bukti bayar berhasil dikirim, order diperbarui menjadi:
+### 6. App syncs payment status
 
-1. `orders.status = payment_review`
-2. `orders.payment_status = submitted`
-
-### 6. Admin reviews payment
-
-Admin membuka detail pembayaran dan melakukan review manual.
+Aplikasi memperbarui status pembayaran melalui webhook atau inquiry ke `Paydia`.
 
 Kemungkinan hasil:
 
@@ -255,19 +244,16 @@ Kemungkinan hasil:
 
 Jika pembayaran valid:
 
-1. `manual_payments.status = approved`
-2. `orders.payment_status = approved`
-3. `orders.status = paid`
-4. `orders.provisioning_status = queued`
+1. `orders.payment_status = approved`
+2. `orders.status = paid`
+3. `orders.provisioning_status = queued` atau tetap `not_started` sampai trigger dijalankan
 
-#### Rejected
+#### Failed or expired
 
-Jika pembayaran tidak valid:
+Jika pembayaran tidak valid, gagal, atau kadaluarsa:
 
-1. `manual_payments.status = rejected`
-2. `manual_payments.admin_notes` diisi alasan penolakan
-3. `orders.payment_status = rejected`
-4. `orders.status = rejected` atau tetap menunggu re-upload sesuai kebijakan operasional
+1. `orders.payment_status` mengikuti mapping status provider
+2. `orders.status` kembali ke state yang sesuai untuk retry atau dinyatakan gagal sesuai kebijakan operasional
 
 ## Provisioning Trigger to n8n
 
@@ -338,7 +324,7 @@ Setelah workflow `n8n` selesai membuat meeting Zoom, `n8n` mengirim callback ke:
 Tujuan route callback:
 
 1. menerima hasil provisioning
-2. menyimpan atau memperbarui `zoom_meetings`
+2. menyimpan atau memperbarui `meeting`
 3. memperbarui `orders.provisioning_status`
 4. memperbarui `orders.status`
 5. mencatat log inbound ke `webhook_logs`
@@ -350,11 +336,10 @@ Tujuan route callback:
   "order_id": "uuid-order",
   "order_code": "ORD-24001",
   "status": "success",
-  "provider": "zoom",
-  "external_meeting_id": "123456789",
+  "meeting_id": "123456789",
   "join_url": "https://zoom.us/j/123456789",
   "start_url": "https://zoom.us/s/abcdef",
-  "meeting_password": "abc123"
+  "password": "abc123"
 }
 ```
 
@@ -364,12 +349,12 @@ Tujuan route callback:
 
 Jika provisioning berhasil:
 
-1. upsert `zoom_meetings`
-2. isi `external_meeting_id`
+1. upsert `meeting`
+2. isi `meeting_id`
 3. isi `join_url`
 4. isi `start_url`
-5. isi `meeting_password` bila ada
-6. set `zoom_meetings.status = generated` atau `delivered`
+5. isi `password` bila ada
+6. set `meeting.status` sesuai status meeting yang disepakati aplikasi
 7. set `orders.provisioning_status = success`
 8. set `orders.status = completed`
 9. update `webhook_logs.status = success`
@@ -378,7 +363,7 @@ Jika provisioning berhasil:
 
 Jika provisioning gagal:
 
-1. buat atau update `zoom_meetings.status = failed`
+1. buat atau update `meeting.status` ke nilai gagal atau terminal yang disepakati aplikasi
 2. set `orders.provisioning_status = failed`
 3. `orders.status` tetap `processing` atau dipindahkan ke state gagal sesuai kebijakan
 4. simpan pesan error di `webhook_logs.error_message`
@@ -391,29 +376,27 @@ Jika provisioning gagal:
 Contoh alur normal:
 
 1. `pending_payment`
-2. `payment_review`
-3. `paid`
-4. `processing`
-5. `completed`
+2. `paid`
+3. `processing`
+4. `completed`
 
 Contoh alur gagal bayar:
 
 1. `pending_payment`
-2. `payment_review`
-3. `rejected`
+2. `rejected`
 
 ### Payment Status
 
 Contoh alur normal:
 
 1. `unpaid`
-2. `submitted`
+2. `pending`
 3. `approved`
 
 Contoh alur gagal:
 
 1. `unpaid`
-2. `submitted`
+2. `pending`
 3. `rejected`
 
 ### Provisioning Status
@@ -446,14 +429,11 @@ App
   -> tampilkan halaman pembayaran
 
 Customer
-  -> upload bukti pembayaran
+  -> scan QRIS dan bayar lewat provider
 
 App
-  -> create manual_payments
-  -> update order ke payment_review
-
-Admin
-  -> approve payment
+  -> simpan referensi transaksi Paydia
+  -> update status payment dari webhook atau inquiry
 
 App
   -> update payment + order state
@@ -466,7 +446,7 @@ n8n
   -> callback ke /api/webhooks/n8n/provision
 
 App
-  -> simpan zoom_meetings
+  -> simpan meeting
   -> update order provisioning state
   -> log inbound webhook
 
@@ -479,8 +459,7 @@ Customer
 1. Route internal provisioning tidak boleh dapat dipanggil bebas dari browser publik.
 2. Callback dari `n8n` harus dilindungi dengan secret atau signature.
 3. User hanya boleh mengakses order miliknya sendiri melalui RLS.
-4. File bukti bayar sebaiknya disimpan sebagai path internal, bukan URL publik permanen.
-5. Semua mutation penting harus idempotent, terutama approval payment dan callback provisioning.
+4. Semua mutation penting harus idempotent, terutama sinkronisasi payment dan callback provisioning.
 
 ## Current Implementation Status
 
@@ -488,18 +467,16 @@ Status repository saat dokumen ini ditulis:
 
 1. UI flow pembelian, pembayaran, status pembayaran, dan meeting sudah tersedia.
 2. Schema database utama sudah tersedia di `supabase/schema.sql`.
-3. Route integrasi berikut masih berupa placeholder:
-   - `/api/storage/payment-proof/signed-upload`
+3. Route integrasi provisioning ke `n8n` masih berupa placeholder:
    - `/api/internal/orders/[orderId]/provision`
    - `/api/webhooks/n8n/provision`
-4. Integrasi nyata ke database, storage, dan `n8n` belum diimplementasikan.
+4. Integrasi nyata ke `Paydia` untuk payment sudah berjalan, sedangkan integrasi `n8n` belum final.
 
 ## Suggested Implementation Order
 
 1. Buat server action untuk create `orders` dan `meeting_requests`.
-2. Implement signed upload bukti bayar ke storage.
-3. Simpan `manual_payments` dan update state order.
-4. Buat admin approval flow.
-5. Implement trigger provisioning ke `n8n`.
-6. Implement callback handler dari `n8n`.
-7. Tampilkan `zoom_meetings.join_url` di dashboard user.
+2. Finalkan sinkronisasi status payment `Paydia`.
+3. Buat admin monitoring flow.
+4. Implement trigger provisioning ke `n8n`.
+5. Implement callback handler dari `n8n`.
+6. Tampilkan `meeting.join_url` di dashboard user.
