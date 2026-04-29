@@ -48,14 +48,14 @@
 - [x] Mapping status berhasil ke `orders.payment_status = approved`
 - [x] Mapping status gagal, expired, atau cancel sesuai aturan bisnis
 - [x] Saat payment confirmed, ubah `orders.status` ke `paid`
-- [ ] Pastikan provisioning belum berjalan sebelum payment valid
-- [ ] Pastikan repeat webhook tetap idempotent
+- [x] Pastikan provisioning belum berjalan sebelum payment valid
+- [x] Pastikan repeat webhook tetap idempotent
 - [x] Simpan payload penting create transaction dan webhook untuk audit atau debug di `orders.paydia_payload`
-- [ ] Putuskan apakah inbound webhook juga dicatat ke `webhook_logs`
+- [x] Putuskan inbound webhook juga dicatat ke `webhook_logs`
 - [x] Siapkan status inquiry sebagai fallback jika webhook belum diterima
 - [x] Simpan credential `Paydia` di environment variables
 - [x] Tambahkan env SNAP QRIS yang masih kurang seperti `PAYDIA_CHANNEL_ID`, `PAYDIA_CALLBACK_URL`, dan `PAYDIA_PUBLIC_KEY`
-- [ ] Pastikan route create transaction tidak bisa dipakai untuk order milik user lain
+- [x] Pastikan route create transaction tidak bisa dipakai untuk order milik user lain
 - [x] Pastikan webhook tidak bisa dipalsukan
 - [ ] Test create transaction sukses
 - [ ] Test create transaction gagal dari provider
