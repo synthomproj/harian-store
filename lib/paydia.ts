@@ -130,7 +130,20 @@ export function mapPaydiaSnapStatus(statusCode: string | null) {
 }
 
 export function verifyPaydiaWebhookSignature(signature: string, timestamp: string, rawBody: string) {
-  const { publicKey } = getPaydiaEnv();
+  const { publicKey, skipWebhookSignature, isProduction } = getPaydiaEnv();
+
+  if (skipWebhookSignature) {
+    if (isProduction) {
+      throw new Error("PAYDIA_SKIP_WEBHOOK_SIGNATURE tidak boleh dipakai di production.");
+    }
+
+    return true;
+  }
+
+  if (!publicKey) {
+    throw new Error("Missing environment variable: PAYDIA_PUBLIC_KEY");
+  }
+
   const verifier = crypto.createVerify("RSA-SHA256");
   verifier.update(`POST:/api/webhooks/paydia/qris:${hashRawBody(rawBody)}:${timestamp}`);
   verifier.end();

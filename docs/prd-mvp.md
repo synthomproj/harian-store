@@ -10,9 +10,9 @@ Draft v1
 
 ## Overview
 
-Harian Store adalah aplikasi web untuk pemesanan layanan meeting Zoom berbayar. Pelanggan dapat mendaftar, melengkapi profil, memilih paket meeting, mengajukan jadwal meeting, melakukan pembayaran melalui `Paydia` SNAP QRIS, lalu menerima link Zoom di dashboard setelah pembayaran terkonfirmasi dan meeting berhasil dibuat melalui otomatisasi `n8n`.
+Harian Store adalah aplikasi web untuk pemesanan layanan meeting Zoom berbayar. Pelanggan dapat mendaftar, melengkapi profil, memilih paket meeting, mengajukan jadwal meeting, melakukan pembayaran melalui payment provider yang didukung, lalu menerima link Zoom di dashboard setelah pembayaran terkonfirmasi dan meeting berhasil dibuat melalui otomatisasi `n8n`.
 
-MVP difokuskan untuk memvalidasi alur end-to-end dari pemesanan hingga delivery link meeting dengan integrasi payment gateway `Paydia` sebagai flow pembayaran utama.
+MVP difokuskan untuk memvalidasi alur end-to-end dari pemesanan hingga delivery link meeting dengan integrasi payment gateway sebagai flow pembayaran utama. Pada fase implementasi awal, `Paydia` dipakai sebagai provider pertama, namun desain jangka menengah diarahkan menjadi provider-agnostic.
 
 ## Background
 
@@ -51,8 +51,8 @@ Operator internal yang mengelola paket, memonitor pembayaran, memonitor provisio
 2. Pengisian dan pengelolaan profil pelanggan.
 3. Katalog beberapa paket produk meeting.
 4. Form pemesanan meeting per order.
-5. Instruksi pembayaran via `Paydia` SNAP QRIS.
-6. Sinkronisasi status pembayaran dari `Paydia`.
+5. Instruksi pembayaran melalui provider yang aktif.
+6. Sinkronisasi status pembayaran dari provider.
 7. Monitoring pembayaran oleh admin.
 8. Trigger webhook ke `n8n` setelah pembayaran disetujui.
 9. Penyimpanan hasil link Zoom dari proses provisioning.
@@ -72,7 +72,7 @@ Operator internal yang mengelola paket, memonitor pembayaran, memonitor provisio
 1. Satu order merepresentasikan satu meeting.
 2. Pelanggan dapat membuat lebih dari satu order.
 3. Link meeting hanya ditampilkan di dashboard pelanggan.
-4. Pembayaran utama dilakukan melalui `Paydia` dan status transaksi disinkronkan ke aplikasi.
+4. Pembayaran utama dilakukan melalui provider yang aktif dan status transaksi disinkronkan ke aplikasi.
 5. `n8n` bertindak sebagai automation layer untuk provisioning Zoom, bukan sebagai source of truth utama data aplikasi.
 6. Dashboard user dan admin dipisahkan.
 
@@ -85,7 +85,7 @@ Operator internal yang mengelola paket, memonitor pembayaran, memonitor provisio
 3. Pelanggan memilih salah satu paket meeting.
 4. Pelanggan mengisi form pemesanan: agenda, tanggal, jam mulai, durasi, dan catatan opsional.
 5. Sistem membuat order dengan status awal menunggu pembayaran.
-6. Pelanggan melihat instruksi pembayaran QRIS.
+6. Pelanggan melihat instruksi pembayaran dari provider aktif.
 7. Pelanggan menyelesaikan pembayaran di provider.
 8. Sistem menerima webhook atau melakukan inquiry status pembayaran.
 9. Jika pembayaran disetujui, sistem mengirim trigger ke `n8n`.
@@ -130,10 +130,10 @@ Operator internal yang mengelola paket, memonitor pembayaran, memonitor provisio
 3. Pelanggan harus dapat memiliki lebih dari satu order.
 4. Pelanggan dapat melihat riwayat order miliknya.
 
-### Payment via Paydia
+### Payment Provider Integration
 
-1. Sistem harus menampilkan instruksi pembayaran `Paydia` setelah order dibuat.
-2. Sistem harus dapat membuat transaksi `Paydia` untuk order milik user aktif.
+1. Sistem harus menampilkan instruksi pembayaran dari provider aktif setelah order dibuat.
+2. Sistem harus dapat membuat transaksi payment untuk order milik user aktif.
 3. Sistem harus menyimpan status pembayaran secara terpisah dari status order.
 4. Sistem harus menerima webhook atau hasil inquiry untuk memperbarui status pembayaran.
 5. Admin harus dapat memantau status pembayaran dari panel admin.
@@ -221,7 +221,9 @@ Operator internal yang mengelola paket, memonitor pembayaran, memonitor provisio
 7. `notes`
 8. `timezone`
 
-### paydia fields on orders
+### payment provider fields on orders
+
+Untuk implementasi transisi awal, `orders` masih menyimpan field spesifik `Paydia`:
 
 1. `payment_provider`
 2. `paydia_transaction_id`
@@ -234,6 +236,32 @@ Operator internal yang mengelola paket, memonitor pembayaran, memonitor provisio
 9. `paydia_expires_at`
 10. `paydia_paid_at`
 11. `paydia_payload`
+
+### payments
+
+Untuk desain provider-agnostic yang disarankan:
+
+1. `id`
+2. `order_id`
+3. `provider`
+4. `provider_transaction_id`
+5. `provider_reference_id`
+6. `provider_status`
+7. `payment_type`
+8. `snap_token`
+9. `redirect_url`
+10. `qr_string`
+11. `qr_url`
+12. `va_number`
+13. `bill_key`
+14. `biller_code`
+15. `expiry_at`
+16. `paid_at`
+17. `amount`
+18. `currency`
+19. `payload`
+20. `created_at`
+21. `updated_at`
 
 ### meeting
 
@@ -323,9 +351,13 @@ Operator internal yang mengelola paket, memonitor pembayaran, memonitor provisio
 
 ### Priority 2
 
-1. Pembayaran `Paydia` dan sinkronisasi status.
+1. Pembayaran provider pertama dan sinkronisasi status.
 2. Dashboard user dan admin terpisah.
 3. Monitoring pembayaran oleh admin.
+
+## Implementation Note
+
+Referensi desain lanjutan untuk arsitektur provider payment ada di `docs/payment-implementation-provider.md`.
 
 ### Priority 3
 

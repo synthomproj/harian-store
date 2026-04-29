@@ -1,4 +1,15 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Harian Store
+
+Dokumen kerja utama ada di folder `docs/`.
+
+Referensi yang paling relevan saat ini:
+
+1. `docs/prd-mvp.md`
+2. `docs/progress.md`
+3. `docs/payment-implementation-provider.md`
+4. `docs/paydia-phase-2-verification.md`
+
+Project ini memakai [Next.js](https://nextjs.org).
 
 ## Getting Started
 

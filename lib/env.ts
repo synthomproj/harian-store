@@ -23,6 +23,10 @@ function getEnv(
   return value;
 }
 
+function getOptionalEnv(name: "PAYDIA_PUBLIC_KEY") {
+  return process.env[name]?.trim() || null;
+}
+
 export function getSupabaseEnv() {
   return {
     url: getEnv("NEXT_PUBLIC_SUPABASE_URL"),
@@ -39,6 +43,8 @@ export function getSupabaseServiceRoleEnv() {
 
 export function getPaydiaEnv() {
   const isProduction = getEnv("PAYDIA_IS_PRODUCTION") === "true";
+  const publicKey = getOptionalEnv("PAYDIA_PUBLIC_KEY");
+  const skipWebhookSignature = process.env.PAYDIA_SKIP_WEBHOOK_SIGNATURE === "true";
 
   return {
     clientId: getEnv("PAYDIA_CLIENT_ID"),
@@ -49,7 +55,8 @@ export function getPaydiaEnv() {
     merchantId: getEnv("PAYDIA_MERCHANT_ID"),
     channelId: getEnv("PAYDIA_CHANNEL_ID"),
     callbackUrl: getEnv("PAYDIA_CALLBACK_URL"),
-    publicKey: getEnv("PAYDIA_PUBLIC_KEY").replace(/\\n/g, "\n"),
+    publicKey: publicKey?.replace(/\\n/g, "\n") ?? null,
+    skipWebhookSignature,
     storeId: process.env.PAYDIA_STORE_ID?.trim() || null,
     terminalId: process.env.PAYDIA_TERMINAL_ID?.trim() || null,
   };

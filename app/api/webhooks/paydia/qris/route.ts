@@ -64,7 +64,29 @@ export async function POST(request: Request) {
     );
   }
 
-  const isValidSignature = verifyPaydiaWebhookSignature(signature, timestamp, rawBody);
+  let isValidSignature = false;
+
+  try {
+    isValidSignature = verifyPaydiaWebhookSignature(signature, timestamp, rawBody);
+  } catch (error) {
+    await insertWebhookLog({
+      eventType: "paydia_qris_signature_verification_error",
+      status: "failed",
+      payload: {
+        rawBody,
+        timestamp,
+      },
+      errorMessage: error instanceof Error ? error.message : "Webhook signature verification failed",
+    });
+
+    return NextResponse.json(
+      {
+        responseCode: "5005202",
+        responseMessage: error instanceof Error ? error.message : "Webhook signature verification failed",
+      },
+      { status: 500 },
+    );
+  }
 
   if (!isValidSignature) {
     await insertWebhookLog({

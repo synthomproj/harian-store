@@ -1,5 +1,7 @@
 # Progress
 
+Referensi desain lanjutan untuk provider payment ada di `docs/payment-implementation-provider.md`.
+
 ## Phase 1: Order Creation
 
 ### Status
